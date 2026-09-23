@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1b1230">
+  <meta name="description" content="Team Karton Run – běžecká hra pro náš tým. Uhýbej kratomu, sbírej kartony!">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Karton Run">
+  <meta name="format-detection" content="telephone=no">
+  <title>Team Karton Run</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <canvas id="game" aria-label="Herní plocha"></canvas>
+
+  <div id="ui">
+    <!-- Načítání -->
+    <section id="loading" class="screen show center">
+      <h1 class="logo small"><span>TEAM</span><span>KARTON</span><span>RUN</span></h1>
+      <p id="loadingText" class="loading-text">Načítám…</p>
+    </section>
+
+    <!-- Úvodní obrazovka -->
+    <section id="menu" class="screen">
+      <div class="topbar">
+        <div class="best-pill">🏆 <b id="menuBest">0</b></div>
+        <div class="topbar-right">
+          <button id="btnMute" class="icon-btn" aria-label="Zvuk"></button>
+          <button id="btnFull" class="icon-btn" aria-label="Celá obrazovka">
+            <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+          </button>
+        </div>
+      </div>
+      <h1 class="logo"><span>TEAM</span><span>KARTON</span><span>RUN</span></h1>
+      <p class="tagline">Kratom? Kdepak. <b>KARTON!</b></p>
+      <div class="spacer"></div>
+      <div class="menu-bottom">
+        <button id="btnPlay" class="btn big pulse">▶ HRÁT</button>
+        <button id="btnChar" class="btn char-btn">
+          <img id="menuAvatar" alt="">
+          <span>Postava: <b id="menuCharName"></b></span>
+          <span class="chev">›</span>
+        </button>
+        <div class="help">
+          <div class="help-touch">👆 Swipe <b>← →</b> dráha · <b>↑</b> skok · <b>↓</b> skluz</div>
+          <div class="help-keys">⌨️ Šipky / WASD · mezerník = skok · P = pauza</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Výběr postavy -->
+    <section id="select" class="screen">
+      <h2 class="screen-title">Vyber si běžce</h2>
+      <div class="spacer"></div>
+      <div id="cards" class="cards"></div>
+      <div class="row">
+        <button id="btnBack" class="btn ghost">‹ Zpět</button>
+        <button id="btnSelectPlay" class="btn big">▶ HRÁT</button>
+      </div>
+    </section>
+
+    <!-- HUD během hry -->
+    <section id="hud" class="screen hud">
+      <div class="hud-top">
+        <div class="hud-left">
+          <div class="score" id="hudScore">0</div>
+          <div class="boxes" id="hudBoxesWrap"><span class="box-icon"></span><b id="hudBoxes">0</b></div>
+        </div>
+        <div class="hud-right">
+          <img id="hudAvatar" class="hud-avatar" alt="">
+          <button id="btnPause" class="icon-btn" aria-label="Pauza">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="hint" class="hint"></div>
+      <div id="countdown" class="countdown"></div>
+    </section>
+
+    <!-- Pauza -->
+    <section id="pause" class="screen overlay center">
+      <div class="panel">
+        <h2>Pauza</h2>
+        <button id="btnResume" class="btn big">▶ Pokračovat</button>
+        <div class="row">
+          <button id="btnPauseMute" class="btn ghost small"></button>
+          <button id="btnQuit" class="btn ghost small">Menu</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Konec hry -->
+    <section id="over" class="screen overlay center">
+      <div class="panel">
+        <img id="overAvatar" class="over-avatar" alt="">
+        <h2>Konec běhu!</h2>
+        <div id="overNew" class="new-record">🏆 NOVÝ REKORD!</div>
+        <div class="final-score" id="overScore">0</div>
+        <div class="stats">
+          <div><span>Vzdálenost</span><b id="overDist">0 m</b></div>
+          <div><span>Kartony</span><b id="overBoxes">0</b></div>
+        </div>
+        <div class="records">
+          <div>Celkový rekord: <b id="overBest">0</b></div>
+          <div><span id="overCharLabel">Rekord postavy</span>: <b id="overCharBest">0</b></div>
+        </div>
+        <button id="btnAgain" class="btn big">↻ Hrát znovu</button>
+        <button id="btnChange" class="btn ghost">Změnit postavu</button>
+      </div>
+    </section>
+  </div>
+
+  <noscript><div class="noscript">Hra potřebuje zapnutý JavaScript.</div></noscript>
+  <script type="module" src="js/main.js"></script>
+  <script>
+    // Záchrana pro staré prohlížeče / chybu načtení (např. bez internetu pro Three.js)
+    setTimeout(function () {
+      var l = document.getElementById('loading');
+      if (l && l.classList.contains('show')) {
+        document.getElementById('loadingText').textContent =
+          location.protocol === 'file:'
+            ? 'Hru nejde otevřít přímo ze souboru. Spusť lokální server (viz README).'
+            : 'Načítání trvá nějak dlouho… Zkontroluj připojení k internetu a obnov stránku.';
+      }
+    }, 8000);
+  </script>
+</body>
+</html>
