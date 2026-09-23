@@ -34,7 +34,7 @@ export class Input {
 
   drag(x, y) {
     const t = this.touch;
-    if (!t || !this.enabled) return;
+    if (!t || t.fired || !this.enabled) return;
     const dx = x - t.x, dy = y - t.y;
     const ax = Math.abs(dx), ay = Math.abs(dy);
     if (Math.max(ax, ay) < this.threshold()) return;
@@ -42,8 +42,8 @@ export class Input {
     if (ax > ay) action = dx > 0 ? 'right' : 'left';
     else action = dy > 0 ? 'down' : 'up';
     this.onAction(action);
-    // Nový počátek => stejný tah může pokračovat dalším swipem (např. 2 dráhy doleva).
-    t.x = x; t.y = y;
+    // Jeden dotyk = jedna akce, nezávisle na délce tahu. Další až po zvednutí prstu.
+    t.fired = true;
   }
 
   start(e) {
