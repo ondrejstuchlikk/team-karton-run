@@ -1,5 +1,5 @@
-// Překážky (kelímky, láhve, barely, cigarety, jointy), sbíratelné kartony,
-// object pooling a generátor řad, který vždy nechá průchozí cestu.
+// Překážky (láhve, barely, cigarety, jointy), sbíratelné kartony a kelímky
+// s kratomem (zrychlení), object pooling a generátor řad, který vždy nechá průchozí cestu.
 import * as THREE from 'three';
 import { part, merge, vcMaterial, labelTexture, canvasTexture, makeCanvas } from './geo.js';
 import { LANES, SPAWN_Z, DESPAWN_Z } from './config.js';
@@ -23,7 +23,6 @@ function addSmoke(group, x, y, z) {
 
 const kratomLabel = labelTexture('KRATOM', { w: 256, h: 96, font: 'bold 50px sans-serif', bg: '#f6e7b8', fg: '#2f6b22', border: '#2f6b22' });
 const kratomLabelBig = labelTexture('KRATOM', { w: 256, h: 160, font: 'bold 58px sans-serif', sub: 'TEAM KARTON', bg: '#f3dfa2', fg: '#24521b', border: '#24521b' });
-const labelMat = new THREE.MeshLambertMaterial({ map: kratomLabel });
 const labelBigMat = new THREE.MeshLambertMaterial({ map: kratomLabelBig });
 
 const GEO = {};
@@ -31,7 +30,6 @@ function geos() {
   if (GEO.ready) return GEO;
   // Kelímek s kratomem (průhledná slupka + kalný zelenohnědý nápoj uvnitř)
   GEO.cupInner = merge([
-    part(new THREE.CircleGeometry(0.8, 12), SHADOW, { y: 0.012, rx: -Math.PI / 2 }),
     part(new THREE.CylinderGeometry(0.56, 0.44, 0.78, 12), '#6f7a2a', { y: 0.41 }),
     part(new THREE.CylinderGeometry(0.57, 0.57, 0.04, 12), '#8d9a3a', { y: 0.81 }),
     part(new THREE.CylinderGeometry(0.035, 0.035, 1.3, 5), '#e53935', { x: 0.18, y: 1.0, rz: -0.35 }),
@@ -101,18 +99,6 @@ const cupShellMat = new THREE.MeshLambertMaterial({ color: '#e8f6ff', transparen
 
 // Definice typů: stavba + hitbox (poloviční šířka/hloubka, výška od–do)
 const TYPES = {
-  cup: {
-    hit: { hw: 0.62, hd: 0.55, y0: 0, y1: 1.1 }, low: true,
-    build() {
-      const g = geos(), o = new THREE.Group();
-      o.add(new THREE.Mesh(g.cupInner, vcMaterial));
-      o.add(new THREE.Mesh(g.cupLabel, labelMat));
-      const shell = new THREE.Mesh(g.cupShell, cupShellMat);
-      shell.renderOrder = 1;
-      o.add(shell);
-      return o;
-    },
-  },
   bottle: {
     hit: { hw: 0.78, hd: 0.78, y0: 0, y1: 5 }, tall: true,
     build() {
@@ -167,6 +153,41 @@ function boxTexture() {
 const boxGeo = new THREE.BoxGeometry(0.55, 0.42, 0.55);
 const boxMat = new THREE.MeshLambertMaterial({ map: boxTexture(), emissive: '#4a2a08' });
 
+// ---------- kelímek s kratomem (sbíratelný, dává zrychlení) ----------
+const KRATOM_SCALE = 0.62;
+const kratomInnerMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, emissive: '#2a3308' });
+const kratomLabelMat = new THREE.MeshLambertMaterial({ map: kratomLabel, emissive: '#3a3010' });
+
+function glowTexture() {
+  const c = makeCanvas(64, 64), x = c.getContext('2d');
+  const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,240,150,0.9)');
+  g.addColorStop(0.45, 'rgba(255,200,60,0.35)');
+  g.addColorStop(1, 'rgba(255,180,40,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  return canvasTexture(c);
+}
+const kratomGlowMat = new THREE.SpriteMaterial({ map: glowTexture(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+
+function buildKratom() {
+  const g = geos(), o = new THREE.Group();
+  const cup = new THREE.Group();
+  cup.add(new THREE.Mesh(g.cupInner, kratomInnerMat));
+  cup.add(new THREE.Mesh(g.cupLabel, kratomLabelMat));
+  const shell = new THREE.Mesh(g.cupShell, cupShellMat);
+  shell.renderOrder = 1;
+  cup.add(shell);
+  cup.scale.setScalar(KRATOM_SCALE);
+  cup.position.y = -0.35;
+  o.add(cup);
+  const glow = new THREE.Sprite(kratomGlowMat);
+  glow.scale.setScalar(1.7);
+  glow.renderOrder = 2;
+  o.add(glow);
+  o.userData.glow = glow;
+  return o;
+}
+
 // ---------- pool ----------
 class Pool {
   constructor(scene, build, prefill) {
@@ -191,6 +212,8 @@ class Pool {
 }
 
 const rnd = n => Math.floor(Math.random() * n);
+// Pauza mezi kelímky kratomu: 10–30 s, v průměru 20 s (součet dvou náhod => častěji kolem středu)
+const kratomInterval = () => 10 + (Math.random() + Math.random()) * 10;
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 export class Obstacles {
@@ -206,8 +229,10 @@ export class Obstacles {
       }, k === 'joint' ? 3 : 6);
     }
     this.boxPool = new Pool(scene, () => new THREE.Mesh(boxGeo, boxMat), 40);
+    this.kratomPool = new Pool(scene, buildKratom, 3);
     this.active = [];   // překážky
     this.boxes = [];    // krabice
+    this.kratoms = [];  // kelímky s kratomem
     this.time = 0;
     this.reset();
   }
@@ -215,8 +240,12 @@ export class Obstacles {
   reset() {
     for (const o of this.active) this.pools[o.userData.type].release(o);
     for (const b of this.boxes) this.boxPool.release(b);
+    for (const k of this.kratoms) this.kratomPool.release(k);
     this.active.length = 0;
     this.boxes.length = 0;
+    this.kratoms.length = 0;
+    this.runT = 0;           // čas běhu (s) – pro časování kratomu
+    this.nextKratomT = kratomInterval();
     this.nextRowZ = -48;     // první řada kousek před hráčem
     this.prevGap = 30;
     this.lastFree = 1;
@@ -224,10 +253,10 @@ export class Obstacles {
 
   pickType(distance) {
     const jointW = distance > 180 ? 11 : 0;
-    const w = { cup: 28, bottle: 17, barrel: 16, cig: 26, joint: jointW };
-    let r = Math.random() * (w.cup + w.bottle + w.barrel + w.cig + w.joint);
+    const w = { bottle: 24, barrel: 22, cig: 34, joint: jointW };
+    let r = Math.random() * (w.bottle + w.barrel + w.cig + w.joint);
     for (const k in w) { if ((r -= w[k]) < 0) return k; }
-    return 'cup';
+    return 'cig';
   }
 
   place(type, lane, z) {
@@ -245,6 +274,14 @@ export class Obstacles {
     b.userData.lane = lane;
     b.rotation.y = z * 0.4;
     this.boxes.push(b);
+  }
+
+  addKratom(lane, y, z) {
+    const k = this.kratomPool.get();
+    k.position.set(LANES[lane], y, z);
+    k.userData.baseY = y;
+    k.userData.lane = lane;
+    this.kratoms.push(k);
   }
 
   /**
@@ -280,7 +317,7 @@ export class Obstacles {
       for (let i = 0; i < count; i++) laneTypes[others[i]] = this.pickType(distance);
       // občas i volnou dráhu zaplníme přeskočitelnou/podklouznutelnou překážkou
       if (d > 0.25 && Math.random() < 0.14) {
-        laneTypes[free] = distance > 180 && Math.random() < 0.3 ? 'joint' : (Math.random() < 0.5 ? 'cup' : 'cig');
+        laneTypes[free] = distance > 180 && Math.random() < 0.3 ? 'joint' : 'cig';
         gap += speed * 0.3;
       }
     }
@@ -288,10 +325,12 @@ export class Obstacles {
     for (let l = 0; l < 3; l++) if (laneTypes[l]) this.place(laneTypes[l], l, z);
 
     // krabice v prostoru před touto řadou (mezi ní a předchozí řadou)
+    let boxLane = -1;
     if (Math.random() < 0.7) {
       const freeLanes = [0, 1, 2].filter(l => !laneTypes[l] || !TYPES[laneTypes[l]].tall);
       const lane = freeLanes.length && Math.random() < 0.6 ? freeLanes[rnd(freeLanes.length)] : rnd(3);
       const t = laneTypes[lane];
+      boxLane = lane;
       const start = z + 4, end = z + this.prevGap - 4;
       for (let bz = start; bz <= end; bz += 2.4) this.addBox(lane, 0.75, bz);
       if (t && TYPES[t].low) {
@@ -303,12 +342,20 @@ export class Obstacles {
         this.addBox(lane, 0.5, z);
       }
     }
+
+    // kratom: v průměru jednou za 20 s, uprostřed mezery před řadou, mimo řadu krabic
+    if (this.runT >= this.nextKratomT) {
+      const lanes = [0, 1, 2].filter(l => l !== boxLane);
+      this.addKratom(lanes[rnd(lanes.length)], 0.95, z + this.prevGap * 0.5);
+      this.nextKratomT = this.runT + kratomInterval();
+    }
     this.prevGap = gap;
     return gap;
   }
 
   update(dt, move, speed, distance) {
     this.time += dt;
+    this.runT += dt;
     // generování řad (kurzor se posouvá spolu se světem)
     this.nextRowZ += move;
     while (this.nextRowZ > SPAWN_Z) {
@@ -341,6 +388,20 @@ export class Obstacles {
       b.rotation.y += dt * 3;
       b.position.y = b.userData.baseY + Math.sin(this.time * 4 + b.position.z * 0.3) * 0.08;
     }
+    for (let i = this.kratoms.length - 1; i >= 0; i--) {
+      const k = this.kratoms[i];
+      k.position.z += move;
+      if (k.position.z > DESPAWN_Z) { this.removeKratomAt(i); continue; }
+      k.rotation.y += dt * 2.2;
+      k.position.y = k.userData.baseY + Math.sin(this.time * 3.5) * 0.12;
+      k.userData.glow.material.opacity = 0.75 + Math.sin(this.time * 6) * 0.25;
+    }
+  }
+
+  removeKratomAt(i) {
+    this.kratomPool.release(this.kratoms[i]);
+    this.kratoms[i] = this.kratoms[this.kratoms.length - 1];
+    this.kratoms.pop();
   }
 
   removeBoxAt(i) {

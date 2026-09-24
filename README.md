@@ -5,8 +5,9 @@ Endless runner ve stylu Subway Surfers pro náš běžecký tým **Team Karton**
 
 - 3 dráhy, uhýbání, skoky a skluzy
 - 4 běžci: **Rob, Pepan, Kuba, Ondra**, každý s vlastním účesem, barvou dresu a jménem na zádech
-- Překážky: kelímky s kratomem, velké láhve a barely s kratomem, cigarety napříč dráhou a vzácně joint ve výšce hlavy
+- Překážky: velké láhve a barely s kratomem, cigarety napříč dráhou a vzácně joint ve výšce hlavy
 - Sbírej kartonové krabice pro bonusové body (1 krabice = 10 bodů)
+- Sbírej kelímky s kratomem (1 kelímek = 25 bodů): běžec se na 3 s zrychlí a táhne za sebou ohnivou stopu
 - Rekordy (celkový a pro každou postavu) se ukládají v prohlížeči
 - Dá se přidat na plochu telefonu jako aplikace
 
@@ -34,7 +35,8 @@ js/game.js          – renderer, kamera, herní smyčka (delta time), kolize, s
 js/world.js         – trať, chodníky, stromy, lampy, cedule TEAM KARTON
 js/player.js        – pohyb hráče, skok, skluz, animace běhu
 js/characters.js    – definice postav, 3D modely (účesy, obličej), 2D avatary
-js/obstacles.js     – překážky, krabice, object pooling, generátor průchozích řad
+js/obstacles.js     – překážky, krabice, kelímky kratomu, object pooling, generátor průchozích řad
+js/effects.js       – ohnivá stopa s kouřem při zrychlení
 js/input.js         – swipe (reaguje už během tahu) + klávesnice
 js/audio.js         – zvukové efekty přes Web Audio API
 js/storage.js       – rekordy a nastavení v localStorage

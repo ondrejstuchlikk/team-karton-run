@@ -3,7 +3,8 @@ import * as THREE from 'three';
 import { World } from './world.js';
 import { Obstacles } from './obstacles.js';
 import { Player } from './player.js';
-import { PLAYER_HW, PLAYER_HD, BOX_POINTS, speedForDistance } from './config.js';
+import { BoostTrail } from './effects.js';
+import { PLAYER_HW, PLAYER_HD, BOX_POINTS, KRATOM_POINTS, BOOST_TIME, BOOST_EXTRA, speedForDistance } from './config.js';
 
 const damp = (a, b, rate, dt) => a + (b - a) * (1 - Math.exp(-rate * dt));
 const INTRO_TIME = 0.8;
@@ -38,6 +39,7 @@ export class Game {
     this.world = new World(scene, this.renderer);
     this.obstacles = new Obstacles(scene);
     this.player = new Player(scene);
+    this.trail = new BoostTrail(scene);
 
     this.state = 'menu';   // menu | select | intro | playing | paused | countdown | dying | over
     this.t = 0;
@@ -64,12 +66,15 @@ export class Game {
   resetRun() {
     this.distance = 0;
     this.boxes = 0;
+    this.kratoms = 0;
+    this.boostT = 0;
     this.speed = 0;
     this.runTime = 0;
     this.lastHud = '';
     this.obstacles.reset();
     this.world.reset();
     this.player.reset();
+    this.trail.reset();
   }
 
   setState(s) {
@@ -151,7 +156,7 @@ export class Game {
 
       case 'playing':
         this.runTime += dt;
-        this.step(dt, speedForDistance(this.distance));
+        this.step(dt, speedForDistance(this.distance) * (1 + BOOST_EXTRA * this.boost));
         break;
 
       case 'countdown': {
@@ -168,6 +173,7 @@ export class Game {
         p.updateDead(dt);
         this.speed = damp(this.speed, 0, 5, dt);
         this.world.update(dt, this.speed * 0.3);
+        this.trail.update(dt, 0, p.x, p.y, false);
         if (this.deathT > DEATH_TIME) {
           this.setState('over');
           this.hooks.onGameOver?.(this.result());
@@ -181,8 +187,18 @@ export class Game {
     if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 2);
   }
 
+  /** Síla zrychlení 0..1: rychlý nástup, plynulé doznění na konci. */
+  get boost() {
+    if (this.boostT <= 0) return 0;
+    return Math.min(1, (BOOST_TIME - this.boostT) / 0.25) * Math.min(1, this.boostT / 0.8);
+  }
+
   /** Jeden krok běhu. */
   step(dt, speed) {
+    if (this.boostT > 0) {
+      this.boostT = Math.max(0, this.boostT - dt);
+      if (this.boostT === 0) this.hooks.onBoost?.(false);
+    }
     this.speed = speed;
     const move = speed * dt;
     this.distance += move;
@@ -191,6 +207,8 @@ export class Game {
     this.player.update(dt, speed);
     this.collide();
     this.collect();
+    const p = this.player;
+    this.trail.update(dt, this.boost, p.x, p.y, p.sliding);
     this.emitHud();
   }
 
@@ -228,9 +246,23 @@ export class Game {
       this.boxes++;
       this.hooks.onCollect?.();
     }
+    const kratoms = this.obstacles.kratoms;
+    for (let i = kratoms.length - 1; i >= 0; i--) {
+      const k = kratoms[i];
+      if (Math.abs(k.position.z) > 0.9) continue;
+      if (Math.abs(k.position.x - p.x) > 0.9) continue;
+      const ky = k.userData.baseY;
+      if (ky < p.y - 0.5 || ky > p.y + p.height + 0.5) continue;
+      this.obstacles.removeKratomAt(i);
+      this.kratoms++;
+      this.boostT = BOOST_TIME;
+      this.hooks.onKratom?.();
+      this.hooks.onBoost?.(true);
+    }
   }
 
   crash() {
+    if (this.boostT > 0) { this.boostT = 0; this.hooks.onBoost?.(false); }
     this.player.die();
     this.deathT = 0;
     this.shake = 0.6;
@@ -238,17 +270,17 @@ export class Game {
     this.hooks.onCrash?.();
   }
 
-  get score() { return Math.floor(this.distance) + this.boxes * BOX_POINTS; }
+  get score() { return Math.floor(this.distance) + this.boxes * BOX_POINTS + this.kratoms * KRATOM_POINTS; }
 
   result() {
-    return { score: this.score, distance: Math.floor(this.distance), boxes: this.boxes, character: this.character };
+    return { score: this.score, distance: Math.floor(this.distance), boxes: this.boxes, kratoms: this.kratoms, character: this.character };
   }
 
   emitHud(force) {
-    const key = this.score + '|' + this.boxes;
+    const key = this.score + '|' + this.boxes + '|' + this.kratoms;
     if (!force && key === this.lastHud) return;
     this.lastHud = key;
-    this.hooks.onHud?.(this.score, this.boxes);
+    this.hooks.onHud?.(this.score, this.boxes, this.kratoms);
   }
 
   // ---------- kamera ----------
@@ -283,7 +315,7 @@ export class Game {
       rate = 4;
     } else {
       const px = this.player.x;
-      fov = this.playFov();
+      fov = this.playFov() + this.boost * 7; // při zrychlení lehce roztáhnout obraz
       pos = _v1.set(px * 0.55, 5.4, 7.6);
       look = _v2.set(px * 0.35, 0.4, -5);
       rate = s === 'intro' ? 5 : 9;

@@ -37,6 +37,8 @@ export class UI {
     this.score = $('hudScore');
     this.boxes = $('hudBoxes');
     this.boxesWrap = $('hudBoxesWrap');
+    this.kratom = $('hudKratom');
+    this.kratomWrap = $('hudKratomWrap');
     this.countdownEl = $('countdown');
     this.hintEl = $('hint');
 
@@ -109,17 +111,23 @@ export class UI {
 
   setFullscreenAvailable(ok) { $('btnFull').style.display = ok ? '' : 'none'; }
 
-  hud(score, boxes) {
+  hud(score, boxes, kratoms) {
     this.score.textContent = score;
-    if (this.boxes.textContent !== String(boxes)) {
-      this.boxes.textContent = boxes;
-      if (boxes > 0) {
-        this.boxesWrap.classList.remove('pop');
-        void this.boxesWrap.offsetWidth;
-        this.boxesWrap.classList.add('pop');
-      }
+    this.counter(this.boxes, this.boxesWrap, boxes);
+    this.counter(this.kratom, this.kratomWrap, kratoms);
+  }
+
+  counter(el, wrap, n) {
+    if (el.textContent === String(n)) return;
+    el.textContent = n;
+    if (n > 0) {
+      wrap.classList.remove('pop');
+      void wrap.offsetWidth;
+      wrap.classList.add('pop');
     }
   }
+
+  boost(on) { this.kratomWrap.classList.toggle('boost', on); }
 
   countdown(n) {
     const el = this.countdownEl;
@@ -136,6 +144,7 @@ export class UI {
     $('overScore').textContent = res.score;
     $('overDist').textContent = res.distance + ' m';
     $('overBoxes').textContent = res.boxes;
+    $('overKratom').textContent = res.kratoms;
     $('overBest').textContent = storage.best;
     $('overCharLabel').textContent = `Rekord (${ch.name})`;
     $('overCharBest').textContent = storage.bestFor(ch.id);

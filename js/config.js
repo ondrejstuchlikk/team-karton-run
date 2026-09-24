@@ -8,6 +8,9 @@ export const MAX_SPEED = 36;
 export const SPEED_RAMP = 1800;           // čím větší, tím pomaleji se zrychluje
 
 export const BOX_POINTS = 10;             // bonus za jednu krabici
+export const KRATOM_POINTS = 25;          // bonus za jeden kelímek kratomu
+export const BOOST_TIME = 3;              // jak dlouho (s) trvá zrychlení po kratomu
+export const BOOST_EXTRA = 0.35;          // o kolik se zrychlí (0.35 = +35 %)
 
 // Hitbox hráče (poloviční šířka/hloubka)
 export const PLAYER_HW = 0.3;

@@ -257,6 +257,18 @@ body:not(.touch) .help-touch { display: none; }
 .boxes b { font-weight: normal; color: #ffd54a; }
 .boxes.pop { animation: pop 0.25s ease-out; }
 @keyframes pop { 40% { transform: scale(1.18); } }
+.boxes.kratoms { display: flex; width: max-content; transition: box-shadow 0.2s, background 0.2s; }
+.boxes.kratoms b { color: #b8e36a; }
+.boxes.kratoms.boost {
+  background: rgba(120, 40, 8, 0.85);
+  box-shadow: 0 0 0 2px #ff9a2e, 0 0 16px #ff6a1a;
+}
+.kratom-icon {
+  width: 20px;
+  height: 24px;
+  clip-path: polygon(0 0, 100% 0, 84% 100%, 16% 100%);
+  background: linear-gradient(#e8f6ff 0 14%, #8d9a3a 14% 22%, #6f7a2a 22% 44%, #f6e7b8 44% 64%, #6f7a2a 64%);
+}
 .box-icon {
   width: 26px;
   height: 22px;

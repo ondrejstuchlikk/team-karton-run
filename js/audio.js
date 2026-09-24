@@ -65,6 +65,11 @@ export class Sfx {
           this.tone('triangle', 880, 1100, 0.07, 0.22);
           this.tone('triangle', 1320, 1760, 0.09, 0.2, 0.06);
           break;
+        case 'kratom':
+          this.tone('sawtooth', 220, 880, 0.35, 0.14);
+          this.tone('triangle', 660, 1320, 0.25, 0.18, 0.05);
+          this.noiseBurst(0.4, 0.25, 2200, 'bandpass');
+          break;
         case 'bump':
           this.tone('sawtooth', 180, 90, 0.15, 0.25);
           this.noiseBurst(0.1, 0.3, 800);
