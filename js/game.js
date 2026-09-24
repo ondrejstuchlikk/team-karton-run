@@ -8,6 +8,7 @@ import { PLAYER_HW, PLAYER_HD, BOX_POINTS, KRATOM_POINTS, BOOST_TIME, BOOST_EXTR
 
 const damp = (a, b, rate, dt) => a + (b - a) * (1 - Math.exp(-rate * dt));
 const INTRO_TIME = 0.8;
+const READY_TIME = 4;   // jak dlouho visí nápověda před startem (dá se přeskočit)
 const DEATH_TIME = 1.2;
 
 export class Game {
@@ -41,7 +42,7 @@ export class Game {
     this.player = new Player(scene);
     this.trail = new BoostTrail(scene);
 
-    this.state = 'menu';   // menu | select | intro | playing | paused | countdown | dying | over
+    this.state = 'menu';   // menu | select | ready | intro | playing | paused | countdown | dying | over
     this.t = 0;
     this.shake = 0;
     this.snapCam = true;
@@ -92,9 +93,18 @@ export class Game {
   start() {
     this.resetRun();
     this.player.root.rotation.y = Math.PI; // otočka od kamery do směru běhu
+    this.readyT = 0;
+    // první řady překážek jsou vidět už během nápovědy
+    this.obstacles.update(0, 0, speedForDistance(0), 0);
+    this.setState('ready');
+    this.emitHud(true);
+  }
+
+  /** Konec nápovědy -> rozběh. */
+  go() {
+    if (this.state !== 'ready') return;
     this.introT = 0;
     this.setState('intro');
-    this.emitHud(true);
   }
 
   pause() {
@@ -113,6 +123,7 @@ export class Game {
   }
 
   action(a) {
+    if (this.state === 'ready') { this.go(); return null; }
     if (this.state !== 'playing' && this.state !== 'intro') return null;
     const p = this.player;
     switch (a) {
@@ -144,6 +155,12 @@ export class Game {
       case 'menu':
       case 'select':
         p.updateShowcase(dt, this.t, this.state === 'select');
+        break;
+
+      case 'ready':
+        this.readyT += dt;
+        p.update(dt, 0);
+        if (this.readyT >= READY_TIME) this.go();
         break;
 
       case 'intro': {

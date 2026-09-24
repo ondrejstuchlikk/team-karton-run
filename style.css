@@ -316,6 +316,43 @@ body:not(.touch) .help-touch { display: none; }
 .countdown.show { display: grid; animation: count 1s ease-out forwards; }
 @keyframes count { 0% { transform: scale(1.8); opacity: 0; } 25% { transform: scale(1); opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
 
+/* ---------- nápověda před startem ---------- */
+#tip { pointer-events: auto; }
+.tip-panel h2 { font-size: 26px; text-align: center; line-height: 1.1; }
+.tip-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 6px 6px;
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+}
+.tip-row.good { background: #e3f5c8; }
+.tip-row.bad { background: #fbd9cf; }
+.tip-imgs { display: flex; flex: 0 0 auto; }
+.tip-imgs img { width: 64px; height: 64px; }
+.tip-row.good img { filter: drop-shadow(0 0 8px rgba(255, 200, 60, 0.9)); }
+.tip-row.bad .tip-imgs img { width: 40px; object-fit: cover; }
+.tip-text { flex: 1; display: flex; flex-direction: column; line-height: 1.15; }
+.tip-text b { font-size: 20px; font-weight: 800; }
+.tip-text span { font-family: system-ui, sans-serif; font-weight: 700; font-size: 14px; }
+.tip-mark {
+  flex: 0 0 auto;
+  width: 38px; height: 38px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  color: #fff;
+  font-size: 22px;
+}
+.good .tip-mark { background: #43a047; }
+.bad .tip-mark { background: #e53935; }
+.tip-bar { width: 100%; height: 6px; border-radius: 3px; background: rgba(27, 18, 48, 0.15); overflow: hidden; }
+.tip-bar i { display: block; height: 100%; background: var(--orange); transform-origin: left; }
+#tip.show .tip-bar i { animation: tipBar 4s linear forwards; }
+@keyframes tipBar { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
 /* ---------- panely (pauza, konec) ---------- */
 .overlay { background: rgba(27, 18, 48, 0.45); }
 .panel {

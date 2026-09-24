@@ -7,7 +7,8 @@ Endless runner ve stylu Subway Surfers pro náš běžecký tým **Team Karton**
 - 4 běžci: **Rob, Pepan, Kuba, Ondra**, každý s vlastním účesem, barvou dresu a jménem na zádech
 - Překážky: velké láhve a barely s kratomem, cigarety napříč dráhou a vzácně joint ve výšce hlavy
 - Sbírej kartonové krabice pro bonusové body (1 krabice = 10 bodů)
-- Sbírej kelímky s kratomem (1 kelímek = 25 bodů): běžec se na 3 s zrychlí a táhne za sebou ohnivou stopu
+- Sbírej kelímky s kratomem (1 kelímek = 25 bodů, zhruba jednou za 10 s, první hned na začátku): běžec se na 3 s zrychlí a táhne za sebou ohnivou stopu
+- Před každým během krátká nápověda, co sbírat a čemu uhnout (klepnutím se dá přeskočit)
 - Rekordy (celkový a pro každou postavu) se ukládají v prohlížeči
 - Dá se přidat na plochu telefonu jako aplikace
 

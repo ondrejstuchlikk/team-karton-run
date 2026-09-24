@@ -2,7 +2,7 @@
 // s kratomem (zrychlení), object pooling a generátor řad, který vždy nechá průchozí cestu.
 import * as THREE from 'three';
 import { part, merge, vcMaterial, labelTexture, canvasTexture, makeCanvas } from './geo.js';
-import { LANES, SPAWN_Z, DESPAWN_Z } from './config.js';
+import { LANES, SPAWN_Z, DESPAWN_Z, START_SPEED } from './config.js';
 
 // ---------- sdílené geometrie a materiály ----------
 const SHADOW = '#8e3a28'; // tmavý tartan = levný „stín“ pod překážkou
@@ -188,6 +188,40 @@ function buildKratom() {
   return o;
 }
 
+/**
+ * Vyrenderuje náhledy kelímku, láhve a sudu do obrázků (pro nápovědu před startem).
+ * Používá dočasný vlastní WebGL kontext, který hned uvolní.
+ */
+export function renderThumbs(size = 160) {
+  const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  r.setPixelRatio(1);
+  r.setSize(size, size, false);
+  const scene = new THREE.Scene();
+  scene.add(new THREE.HemisphereLight('#e6f4ff', '#5e8a4a', 1.6));
+  const sun = new THREE.DirectionalLight('#fff3dd', 2.0);
+  sun.position.set(4, 10, 6);
+  scene.add(sun);
+  const cam = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+  const box = new THREE.Box3(), c = new THREE.Vector3(), sz = new THREE.Vector3();
+  const shot = obj => {
+    scene.add(obj);
+    box.setFromObject(obj).getCenter(c);
+    box.getSize(sz);
+    const d = Math.max(sz.x, sz.y) * 0.5 / Math.tan(THREE.MathUtils.degToRad(15)) * 1.1 + sz.z * 0.5;
+    cam.position.set(c.x + d * 0.3, c.y + d * 0.3, c.z + d);
+    cam.lookAt(c);
+    r.render(scene, cam);
+    scene.remove(obj);
+    return r.domElement.toDataURL('image/png');
+  };
+  const cup = buildKratom();
+  cup.remove(cup.userData.glow);
+  const out = { kratom: shot(cup), bottle: shot(TYPES.bottle.build()), barrel: shot(TYPES.barrel.build()) };
+  r.dispose();
+  r.forceContextLoss();
+  return out;
+}
+
 // ---------- pool ----------
 class Pool {
   constructor(scene, build, prefill) {
@@ -212,8 +246,8 @@ class Pool {
 }
 
 const rnd = n => Math.floor(Math.random() * n);
-// Pauza mezi kelímky kratomu: 10–30 s, v průměru 20 s (součet dvou náhod => častěji kolem středu)
-const kratomInterval = () => 10 + (Math.random() + Math.random()) * 10;
+// Pauza mezi kelímky kratomu: 5–15 s, v průměru 10 s (součet dvou náhod => častěji kolem středu)
+const kratomInterval = () => 5 + (Math.random() + Math.random()) * 5;
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 export class Obstacles {
@@ -245,7 +279,7 @@ export class Obstacles {
     this.boxes.length = 0;
     this.kratoms.length = 0;
     this.runT = 0;           // čas běhu (s) – pro časování kratomu
-    this.nextKratomT = kratomInterval();
+    this.nextKratomT = 0;    // kdy (čas běhu) má další kratom doběhnout k hráči; 0 = hned v první řadě
     this.nextRowZ = -48;     // první řada kousek před hráčem
     this.prevGap = 30;
     this.lastFree = 1;
@@ -343,11 +377,14 @@ export class Obstacles {
       }
     }
 
-    // kratom: v průměru jednou za 20 s, uprostřed mezery před řadou, mimo řadu krabic
-    if (this.runT >= this.nextKratomT) {
+    // kratom: k hráči dorazí v průměru jednou za 10 s (první hned v první řadě),
+    // uprostřed mezery před řadou, mimo řadu krabic
+    const kz = z + this.prevGap * 0.5;
+    const eta = this.runT - kz / Math.max(speed, START_SPEED);   // odhad, kdy doběhne k hráči
+    if (eta >= this.nextKratomT) {
       const lanes = [0, 1, 2].filter(l => l !== boxLane);
-      this.addKratom(lanes[rnd(lanes.length)], 0.95, z + this.prevGap * 0.5);
-      this.nextKratomT = this.runT + kratomInterval();
+      this.addKratom(lanes[rnd(lanes.length)], 0.95, kz);
+      this.nextKratomT = eta + kratomInterval();
     }
     this.prevGap = gap;
     return gap;

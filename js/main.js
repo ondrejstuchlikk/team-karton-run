@@ -5,6 +5,7 @@ import { Input } from './input.js';
 import { Sfx } from './audio.js';
 import { Storage } from './storage.js';
 import { getCharacter } from './characters.js';
+import { renderThumbs } from './obstacles.js';
 
 const storage = new Storage();
 const sfx = new Sfx(storage.muted);
@@ -30,6 +31,7 @@ function toggleFullscreen() {
 const ui = new UI({
   click: () => sfx.play('click'),
   play: () => game.start(),
+  go: () => game.go(),
   openSelect: () => { ui.buildCards(character.id, storage); game.showSelect(); },
   back: () => game.showMenu(),
   selectChar: id => {
@@ -54,7 +56,7 @@ try {
   game = new Game(document.getElementById('game'), {
     onStateChange: s => {
       ui.showState(s);
-      input.enabled = s === 'playing' || s === 'intro';
+      input.enabled = s === 'playing' || s === 'intro' || s === 'ready';
     },
     onHud: (score, boxes, kratoms) => ui.hud(score, boxes, kratoms),
     onCollect: () => sfx.play('box'),
@@ -88,7 +90,7 @@ window.addEventListener('keydown', e => {
   if ((e.key === 'Enter' || e.key === ' ') && ['menu', 'over', 'select'].includes(game.state)) {
     e.preventDefault();
     game.start();
-  }
+  } else if (e.key === 'Enter' && game.state === 'ready') game.go();
 });
 
 // Automatická pauza při přepnutí aplikace / karty
@@ -108,6 +110,7 @@ ui.setBest(storage.best);
 ui.setMuted(storage.muted);
 ui.setFullscreenAvailable(fullscreenSupported());
 ui.buildCards(character.id, storage);
+try { ui.setTipImages(renderThumbs()); } catch { /* nápověda bude bez obrázků */ }
 game.showMenu();
 ui.hideLoading();
 

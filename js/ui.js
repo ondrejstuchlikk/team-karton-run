@@ -6,6 +6,7 @@ const $ = id => document.getElementById(id);
 const SCREENS_FOR_STATE = {
   menu: ['menu'],
   select: ['select'],
+  ready: ['hud', 'tip'],
   intro: ['hud'],
   playing: ['hud'],
   countdown: ['hud'],
@@ -33,6 +34,8 @@ export class UI {
     click('btnMute', h.toggleMute);
     click('btnPauseMute', h.toggleMute);
     click('btnFull', h.fullscreen);
+    // nápověda před startem: klepnutí kamkoli = start
+    $('tip').addEventListener('click', e => { e.preventDefault(); h.click?.(); h.go(); });
 
     this.score = $('hudScore');
     this.boxes = $('hudBoxes');
@@ -49,13 +52,19 @@ export class UI {
       : '<span>←</span><span>→</span><span>↑</span><span>↓</span><small>Šipky nebo WASD</small>';
   }
 
+  setTipImages(t) {
+    $('tipCup').src = t.kratom;
+    $('tipBottle').src = t.bottle;
+    $('tipBarrel').src = t.barrel;
+  }
+
   hideLoading() { $('loading').classList.remove('show'); }
 
   loadingError(msg) { $('loadingText').textContent = msg; }
 
   showState(state) {
     const show = SCREENS_FOR_STATE[state] || [];
-    for (const id of ['menu', 'select', 'hud', 'pause', 'over']) {
+    for (const id of ['menu', 'select', 'hud', 'tip', 'pause', 'over']) {
       $(id).classList.toggle('show', show.includes(id));
     }
     document.body.dataset.state = state;
