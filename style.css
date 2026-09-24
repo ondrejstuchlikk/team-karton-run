@@ -10,7 +10,7 @@
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-l: env(safe-area-inset-left, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
-  --font: 'Lilita One', 'Arial Rounded MT Bold', 'Trebuchet MS', system-ui, sans-serif;
+  --font: 'Baloo 2', 'Arial Rounded MT Bold', 'Trebuchet MS', system-ui, sans-serif;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -23,6 +23,7 @@ html, body {
   background: #8fd3ff;
   color: #fff;
   font-family: var(--font);
+  font-weight: 800;
   touch-action: none;
   overscroll-behavior: none;
   -webkit-user-select: none;
@@ -64,7 +65,7 @@ body { position: fixed; inset: 0; }
   flex-direction: column;
   align-items: center;
   line-height: 0.88;
-  font-weight: normal;
+  font-weight: 800;
   transform: rotate(-4deg);
   filter: drop-shadow(0 6px 0 rgba(0, 0, 0, 0.25));
 }
@@ -95,7 +96,7 @@ body { position: fixed; inset: 0; }
   border-radius: 999px;
   transform: rotate(-2deg);
 }
-.tagline b { color: var(--cardboard); font-weight: normal; }
+.tagline b { color: var(--cardboard); font-weight: 800; }
 
 .loading-text { font-size: 18px; text-shadow: 0 2px 0 var(--ink); text-align: center; max-width: 320px; }
 #loading { background: linear-gradient(#4fa7ea, #bfe6ff); pointer-events: auto; }
@@ -103,6 +104,7 @@ body { position: fixed; inset: 0; }
 /* ---------- tlačítka ---------- */
 .btn {
   font-family: var(--font);
+  font-weight: 800;
   font-size: 22px;
   color: #fff;
   background: var(--orange);
@@ -152,7 +154,7 @@ body { position: fixed; inset: 0; }
   padding: 8px 16px;
   font-size: 20px;
 }
-.best-pill b { color: #ffd54a; font-weight: normal; }
+.best-pill b { color: #ffd54a; font-weight: 800; }
 
 .menu-bottom { width: 100%; max-width: 380px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .char-btn {
@@ -167,7 +169,7 @@ body { position: fixed; inset: 0; }
   font-size: 20px;
 }
 .char-btn img { width: 46px; height: 46px; border-radius: 50%; border: 3px solid var(--char); }
-.char-btn b { color: var(--char); font-weight: normal; -webkit-text-stroke: 0.5px var(--ink); }
+.char-btn b { color: var(--char); font-weight: 800; -webkit-text-stroke: 0.5px var(--ink); }
 .char-btn .chev { margin-left: auto; font-size: 30px; }
 
 .help {
@@ -186,7 +188,7 @@ body:not(.touch) .help-touch { display: none; }
 /* ---------- výběr postavy ---------- */
 .screen-title {
   margin: 4px 0 0;
-  font-weight: normal;
+  font-weight: 800;
   font-size: 32px;
   -webkit-text-stroke: 2px var(--ink);
   paint-order: stroke fill;
@@ -205,6 +207,7 @@ body:not(.touch) .help-touch { display: none; }
 }
 .card {
   font-family: var(--font);
+  font-weight: 800;
   background: var(--cream);
   color: var(--ink);
   border: 3px solid var(--ink);
@@ -254,7 +257,7 @@ body:not(.touch) .help-touch { display: none; }
   padding: 4px 14px 4px 6px;
   font-size: 22px;
 }
-.boxes b { font-weight: normal; color: #ffd54a; }
+.boxes b { font-weight: 800; color: #ffd54a; }
 .boxes.pop { animation: pop 0.25s ease-out; }
 @keyframes pop { 40% { transform: scale(1.18); } }
 .boxes.kratoms { display: flex; width: max-content; transition: box-shadow 0.2s, background 0.2s; }
@@ -333,7 +336,7 @@ body:not(.touch) .help-touch { display: none; }
   animation: panelIn 0.3s cubic-bezier(.2, 1.4, .5, 1);
 }
 @keyframes panelIn { from { transform: scale(0.7); opacity: 0; } }
-.panel h2 { margin: 0; font-weight: normal; font-size: 34px; }
+.panel h2 { margin: 0; font-weight: 800; font-size: 34px; }
 .panel .row { justify-content: center; }
 .panel .row .btn { flex: 1; }
 
@@ -369,9 +372,9 @@ body:not(.touch) .help-touch { display: none; }
   align-items: center;
 }
 .stats span { font-family: system-ui, sans-serif; font-size: 12px; opacity: 0.7; }
-.stats b { font-weight: normal; font-size: 24px; }
+.stats b { font-weight: 800; font-size: 24px; }
 .records { font-family: system-ui, sans-serif; font-size: 14px; text-align: center; line-height: 1.5; }
-.records b { font-family: var(--font); font-weight: normal; font-size: 17px; }
+.records b { font-family: var(--font); font-weight: 800; font-size: 17px; }
 .panel .btn.big { width: 100%; }
 .panel .btn.ghost { width: 100%; }
 
