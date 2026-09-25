@@ -42,7 +42,12 @@ const ui = new UI({
   },
   pause: () => game.pause(),
   resume: () => game.resume(),
-  quit: () => game.showMenu(),
+  quit: () => {
+    // kartony z rozběhnutého běhu se neztratí ani při odchodu do menu
+    storage.addKartony(game.boxes);
+    ui.setKartony(storage.kartony);
+    game.showMenu();
+  },
   toggleMute: () => {
     storage.muted = !storage.muted;
     sfx.setMuted(storage.muted);
@@ -67,6 +72,7 @@ try {
     onCountdown: n => { ui.countdown(n); sfx.play(n > 0 ? 'count' : 'go'); },
     onGameOver: res => {
       const rec = storage.record(res.character.id, res.score);
+      storage.addKartony(res.boxes);
       ui.gameOver(res, rec, storage);
       if (rec.newBest || rec.newCharBest) sfx.play('record');
     },
@@ -107,6 +113,7 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 game.setCharacter(character);
 ui.setCharacter(character);
 ui.setBest(storage.best);
+ui.setKartony(storage.kartony);
 ui.setMuted(storage.muted);
 ui.setFullscreenAvailable(fullscreenSupported());
 ui.buildCards(character.id, storage);

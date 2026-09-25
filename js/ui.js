@@ -113,6 +113,8 @@ export class UI {
 
   setBest(best) { $('menuBest').textContent = best; }
 
+  setKartony(n) { $('menuKartony').textContent = n; }
+
   setMuted(m) {
     $('btnMute').innerHTML = m ? ICON_SOUND_OFF : ICON_SOUND_ON;
     $('btnPauseMute').textContent = m ? '🔇 Zvuk vyp.' : '🔊 Zvuk zap.';
@@ -160,6 +162,8 @@ export class UI {
     const nb = $('overNew');
     nb.textContent = rec.newBest ? '🏆 NOVÝ REKORD!' : `⭐ Nový rekord pro ${ch.gen}!`;
     nb.classList.toggle('show', rec.newBest || rec.newCharBest);
+    $('overWallet').textContent = storage.kartony;
     this.setBest(storage.best);
+    this.setKartony(storage.kartony);
   }
 }

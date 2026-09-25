@@ -2,7 +2,7 @@
 // v anonymním režimu nebo při zakázaném úložišti hra běží dál bez ukládání).
 const KEY = 'teamKartonRun.v1';
 
-const defaults = () => ({ best: 0, perChar: {}, character: 'ondra', muted: false });
+const defaults = () => ({ best: 0, perChar: {}, character: 'ondra', muted: false, kartony: 0 });
 
 export class Storage {
   constructor() {
@@ -12,6 +12,9 @@ export class Storage {
       if (raw) Object.assign(this.data, JSON.parse(raw));
     } catch { /* nedostupné úložiště */ }
     if (typeof this.data.perChar !== 'object' || !this.data.perChar) this.data.perChar = {};
+    if (!Number.isFinite(this.data.kartony)) this.data.kartony = 0;
+    // požádat prohlížeč, ať data nemaže při nedostatku místa (když to nepovolí, nic se neděje)
+    try { navigator.storage?.persist?.().catch(() => {}); } catch { /* nepodporováno */ }
   }
 
   save() {
@@ -26,6 +29,15 @@ export class Storage {
 
   get muted() { return !!this.data.muted; }
   set muted(m) { this.data.muted = m; this.save(); }
+
+  /** Nasbírané kartony ze všech běhů dohromady (peněženka). */
+  get kartony() { return this.data.kartony; }
+
+  addKartony(n) {
+    if (!(n > 0)) return;
+    this.data.kartony += n;
+    this.save();
+  }
 
   /** Zapíše výsledek, vrátí {newBest, newCharBest}. */
   record(id, score) {

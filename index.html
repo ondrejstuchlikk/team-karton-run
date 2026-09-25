@@ -40,7 +40,10 @@
     <!-- Úvodní obrazovka -->
     <section id="menu" class="screen">
       <div class="topbar">
-        <div class="best-pill">🏆 <b id="menuBest">0</b></div>
+        <div class="topbar-left">
+          <div class="best-pill">🏆 <b id="menuBest">0</b></div>
+          <div class="best-pill wallet-pill"><span class="box-icon"></span><b id="menuKartony">0</b></div>
+        </div>
         <div class="topbar-right">
           <button id="btnMute" class="icon-btn" aria-label="Zvuk"></button>
           <button id="btnFull" class="icon-btn" aria-label="Celá obrazovka">
@@ -141,6 +144,7 @@
         <div class="records">
           <div>Celkový rekord: <b id="overBest">0</b></div>
           <div><span id="overCharLabel">Rekord postavy</span>: <b id="overCharBest">0</b></div>
+          <div>Kartony celkem: <b id="overWallet">0</b></div>
         </div>
         <button id="btnAgain" class="btn big">↻ Hrát znovu</button>
         <button id="btnChange" class="btn ghost">Změnit postavu</button>

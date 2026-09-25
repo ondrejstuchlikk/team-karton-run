@@ -1,0 +1,21 @@
+PLÁNY VÝVOJE – Team Karton Run
+==============================
+Nápady a plány na další vývoj hry. Každý plán má název, podle kterého se dá
+zadat: „Udělej plán <NÁZEV> ze souboru Plány vývoje“.
+
+
+[ŽEBŘÍČEK] Online žebříček přes Supabase
+----------------------------------------
+Stav: čeká na realizaci
+
+Společný žebříček hráčů napříč zařízeními. Hra zůstává na GitHub Pages a výsledky
+posílá přímo z JavaScriptu do bezplatné databáze Supabase (tabulka scores: id,
+player_id, přezdívka, postava, skóre, vzdálenost, kartony, datum). Při prvním
+odeslání skóre se hráč zeptá na přezdívku. Ta se spolu s náhodným player_id uloží
+do localStorage. Po každém běhu se výsledek odešle, a když chybí připojení, uloží
+se do fronty a odešle se později. Na obrazovce Konec běhu a v menu bude
+tlačítko/panel „Žebříček“ s TOP 10 (celkově, případně i podle postavy) a vlastním
+umístěním. Proti podvádění se nic neřeší, jen základní omezení v databázi (RLS:
+povolit čtení a vkládání, zakázat úpravy a mazání). Anon klíč Supabase může být
+veřejně v kódu. Před začátkem je potřeba založit účet a projekt
+na supabase.com a poslat URL projektu + anon klíč.

@@ -10,6 +10,7 @@ Endless runner ve stylu Subway Surfers pro náš běžecký tým **Team Karton**
 - Sbírej kelímky s kratomem (1 kelímek = 25 bodů, zhruba jednou za 10 s, první hned na začátku): běžec se na 3 s zrychlí a táhne za sebou ohnivou stopu
 - Před každým během krátká nápověda, co sbírat a čemu uhnout (klepnutím se dá přeskočit)
 - Rekordy (celkový a pro každou postavu) se ukládají v prohlížeči
+- Nasbírané kartony se sčítají ze všech běhů do peněženky (vidět v menu a na konci běhu), uložené v prohlížeči daného zařízení
 - Dá se přidat na plochu telefonu jako aplikace
 
 ## Ovládání
@@ -40,9 +41,10 @@ js/obstacles.js     – překážky, krabice, kelímky kratomu, object pooling, 
 js/effects.js       – ohnivá stopa s kouřem při zrychlení
 js/input.js         – swipe (reaguje už během tahu) + klávesnice
 js/audio.js         – zvukové efekty přes Web Audio API
-js/storage.js       – rekordy a nastavení v localStorage
+js/storage.js       – rekordy, peněženka kartonů a nastavení v localStorage
 js/config.js        – herní konstanty (rychlost, dráhy…)
 js/geo.js           – pomocné funkce pro low-poly geometrii
+Plány vývoje.txt    – nápady a plány na další vývoj
 ```
 
 Žádný build krok. Stačí statické soubory. Three.js (verze 0.160.0) se načítá z jsDelivr CDN.
