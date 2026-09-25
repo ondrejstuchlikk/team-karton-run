@@ -61,6 +61,7 @@
           <span>Postava: <b id="menuCharName"></b></span>
           <span class="chev">›</span>
         </button>
+        <button id="btnBoard" class="btn ghost board-btn">🏆 Žebříček</button>
         <div class="help">
           <div class="help-touch">👆 Swipe <b>← →</b> dráha · <b>↑</b> skok · <b>↓</b> skluz</div>
           <div class="help-keys">⌨️ Šipky / WASD · mezerník = skok · P = pauza</div>
@@ -146,8 +147,33 @@
           <div><span id="overCharLabel">Rekord postavy</span>: <b id="overCharBest">0</b></div>
           <div>Kartony celkem: <b id="overWallet">0</b></div>
         </div>
+        <div id="overRank" class="over-rank"></div>
         <button id="btnAgain" class="btn big">↻ Hrát znovu</button>
-        <button id="btnChange" class="btn ghost">Změnit postavu</button>
+        <div class="row">
+          <button id="btnChange" class="btn ghost small">Postava</button>
+          <button id="btnOverBoard" class="btn ghost small">🏆 Žebříček</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Online žebříček (překrývá menu nebo konec hry) -->
+    <section id="board" class="screen overlay center">
+      <div class="panel board-panel">
+        <h2>🏆 Žebříček</h2>
+        <div id="boardMe" class="board-me">
+          <span>Hraješ jako <b id="boardNick"></b></span>
+          <button id="btnNickEdit" class="btn ghost small">✏️ Změnit</button>
+        </div>
+        <form id="nickForm" class="nick-form">
+          <label for="nickInput">Zadej přezdívku a zapiš se do žebříčku:</label>
+          <div class="nick-row">
+            <input id="nickInput" type="text" maxlength="16" autocomplete="nickname" autocapitalize="words" spellcheck="false" enterkeyhint="done" placeholder="Tvoje přezdívka">
+            <button id="btnNickSave" type="submit" class="btn small">Uložit</button>
+          </div>
+        </form>
+        <ol id="boardList" class="board-list"></ol>
+        <div id="boardStatus" class="board-status"></div>
+        <button id="btnBoardClose" class="btn big">Zavřít</button>
       </div>
     </section>
   </div>

@@ -70,6 +70,7 @@ export class Input {
 
   key(e) {
     const k = e.key;
+    if (e.target?.tagName === 'INPUT') return; // psaní přezdívky neovládá hru
     const map = {
       ArrowLeft: 'left', a: 'left', A: 'left',
       ArrowRight: 'right', d: 'right', D: 'right',

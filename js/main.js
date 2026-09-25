@@ -4,10 +4,12 @@ import { UI } from './ui.js';
 import { Input } from './input.js';
 import { Sfx } from './audio.js';
 import { Storage } from './storage.js';
+import { Leaderboard } from './leaderboard.js';
 import { getCharacter } from './characters.js';
 import { renderThumbs } from './obstacles.js';
 
 const storage = new Storage();
+const board = new Leaderboard(storage);
 const sfx = new Sfx(storage.muted);
 let character = getCharacter(storage.character);
 
@@ -54,7 +56,50 @@ const ui = new UI({
     ui.setMuted(storage.muted);
   },
   fullscreen: toggleFullscreen,
+  openBoard: () => {
+    ui.showBoard(board.nick);
+    loadBoard();
+  },
+  saveNick: name => {
+    if (!board.setNick(name)) { ui.setNick(board.nick); return; }
+    ui.setNick(board.nick);
+    ui.boardStatus('Ukládám…');
+    loadBoard();
+  },
 });
+
+// ---------- online žebříček ----------
+
+async function loadBoard() {
+  try { await board.flush(); } catch { /* odešle se příště */ }
+  try {
+    const top = await board.top();
+    let me = null;
+    if (board.best && !top.some(r => r.player_id === board.playerId)) {
+      const rank = await board.rank();
+      if (rank) me = { rank, nickname: board.nick, character: board.character, score: board.best };
+    }
+    if (ui.boardOpen) ui.renderBoard(top, board.playerId, me);
+  } catch {
+    ui.boardStatus('Žebříček teď nejde načíst. Jsi připojený k internetu?');
+  }
+}
+
+async function submitRun(res) {
+  if (!board.nick) {
+    board.submit(res); // bez přezdívky se rekord jen podrží, odešle se po jejím zadání
+    ui.setOverRank('Zapiš se do žebříčku – klepni na <b>🏆 Žebříček</b>');
+    return;
+  }
+  ui.setOverRank('Odesílám do žebříčku…');
+  try {
+    await board.submit(res);
+    const rank = await board.rank();
+    if (game.state === 'over') ui.setOverRank(rank ? `Tvoje místo v žebříčku: <b>${rank}.</b>` : '');
+  } catch {
+    if (game.state === 'over') ui.setOverRank('Jsi offline – rekord se do žebříčku odešle později.');
+  }
+}
 
 let game;
 try {
@@ -73,6 +118,7 @@ try {
     onGameOver: res => {
       const rec = storage.record(res.character.id, res.score);
       storage.addKartony(res.boxes);
+      submitRun(res);
       ui.gameOver(res, rec, storage);
       if (rec.newBest || rec.newCharBest) sfx.play('record');
     },
@@ -93,6 +139,10 @@ const input = new Input(
 
 // Enter / mezerník spustí hru z menu nebo z obrazovky konce
 window.addEventListener('keydown', e => {
+  if (ui.boardOpen) {
+    if (e.key === 'Escape') ui.hideBoard();
+    return;
+  }
   if ((e.key === 'Enter' || e.key === ' ') && ['menu', 'over', 'select'].includes(game.state)) {
     e.preventDefault();
     game.start();
@@ -108,7 +158,11 @@ window.addEventListener('pagehide', () => game.pause());
 for (const ev of ['gesturestart', 'gesturechange', 'dblclick']) {
   document.addEventListener(ev, e => e.preventDefault(), { passive: false });
 }
-document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('contextmenu', e => { if (e.target.tagName !== 'INPUT') e.preventDefault(); });
+
+// rekord uhraný bez připojení se odešle, jakmile je zase internet
+window.addEventListener('online', () => board.flush().catch(() => {}));
+board.flush().catch(() => {});
 
 game.setCharacter(character);
 ui.setCharacter(character);

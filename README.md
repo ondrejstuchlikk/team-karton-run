@@ -11,6 +11,7 @@ Endless runner ve stylu Subway Surfers pro náš běžecký tým **Team Karton**
 - Před každým během krátká nápověda, co sbírat a čemu uhnout (klepnutím se dá přeskočit)
 - Rekordy (celkový a pro každou postavu) se ukládají v prohlížeči
 - Nasbírané kartony se sčítají ze všech běhů do peněženky (vidět v menu a na konci běhu), uložené v prohlížeči daného zařízení
+- Online žebříček (Supabase): nejlepší výsledek každého hráče pod jeho přezdívkou, TOP 10 + vlastní umístění
 - Dá se přidat na plochu telefonu jako aplikace
 
 ## Ovládání
@@ -42,9 +43,11 @@ js/effects.js       – ohnivá stopa s kouřem při zrychlení
 js/input.js         – swipe (reaguje už během tahu) + klávesnice
 js/audio.js         – zvukové efekty přes Web Audio API
 js/storage.js       – rekordy, peněženka kartonů a nastavení v localStorage
+js/leaderboard.js   – online žebříček přes Supabase REST API
 js/config.js        – herní konstanty (rychlost, dráhy…)
 js/geo.js           – pomocné funkce pro low-poly geometrii
 Plány vývoje.txt    – nápady a plány na další vývoj
+supabase/leaderboard.sql – tabulka a pravidla žebříčku (spustit jednou v Supabase SQL Editoru)
 ```
 
 Žádný build krok. Stačí statické soubory. Three.js (verze 0.160.0) se načítá z jsDelivr CDN.

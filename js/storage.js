@@ -30,6 +30,12 @@ export class Storage {
   get muted() { return !!this.data.muted; }
   set muted(m) { this.data.muted = m; this.save(); }
 
+  /** Data online žebříčku (ID hráče, přezdívka, odeslaný rekord) – spravuje leaderboard.js. */
+  get leaderboard() {
+    if (typeof this.data.leaderboard !== 'object' || !this.data.leaderboard) this.data.leaderboard = {};
+    return this.data.leaderboard;
+  }
+
   /** Nasbírané kartony ze všech běhů dohromady (peněženka). */
   get kartony() { return this.data.kartony; }
 

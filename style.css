@@ -418,6 +418,72 @@ body:not(.touch) .help-touch { display: none; }
 .panel .btn.big { width: 100%; }
 .panel .btn.ghost { width: 100%; }
 
+/* ---------- žebříček ---------- */
+.board-btn { width: 100%; font-size: 20px; min-height: 52px; padding: 8px 16px; }
+.over-rank { font-family: system-ui, sans-serif; font-size: 14px; text-align: center; min-height: 1.3em; }
+.over-rank:empty { display: none; }
+.over-rank b { font-family: var(--font); font-weight: 800; font-size: 17px; }
+#board { z-index: 2; pointer-events: auto; } /* zakryje i tlačítka menu pod sebou */
+.board-panel { gap: 10px; overflow: hidden; }
+.board-me { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 18px; }
+.board-me span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-me .btn.small { width: auto; flex: 0 0 auto; min-height: 42px; font-size: 16px; padding: 6px 12px; box-shadow: 0 4px 0 var(--ink); }
+.nick-form { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.nick-form label { font-family: system-ui, sans-serif; font-size: 14px; }
+.nick-row { display: flex; gap: 8px; }
+.nick-row input {
+  flex: 1;
+  min-width: 0;
+  font: 800 18px var(--font); /* min. 16px, jinak iOS při psaní přiblíží stránku */
+  color: var(--ink);
+  background: #fff;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  padding: 8px 12px;
+  -webkit-user-select: text;
+  user-select: text;
+  touch-action: manipulation;
+}
+.nick-row input:focus { outline: 3px solid var(--orange); outline-offset: 1px; }
+.nick-row .btn { min-height: 50px; }
+.board-list {
+  list-style: none; margin: 0; padding: 2px 0; width: 100%;
+  display: flex; flex-direction: column; gap: 4px;
+  flex: 0 1 auto; min-height: 0; overflow-y: auto;
+  touch-action: pan-y; /* tělo stránky má touch-action: none, seznam se ale posouvat smí */
+}
+.board-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  padding: 2px 10px 2px 4px;
+  font-size: 17px;
+  flex: 0 0 auto;
+}
+.board-list li.me { background: #ffe8a3; border-width: 3px; }
+.board-list li.gap { background: none; border: none; justify-content: center; padding: 0; line-height: 0.6; }
+.board-list .rank { width: 30px; text-align: right; flex: 0 0 auto; }
+.board-list img { width: 28px; height: 28px; border-radius: 50%; flex: 0 0 auto; }
+.board-list .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-list .pts { color: var(--orange-dark); }
+.board-list li:nth-child(1) .rank::before { content: '🥇'; }
+.board-list li:nth-child(2) .rank::before { content: '🥈'; }
+.board-list li:nth-child(3) .rank::before { content: '🥉'; }
+.board-list li:nth-child(-n+3) .rank { font-size: 0; }
+.board-list li:nth-child(-n+3) .rank::before { font-size: 22px; }
+.board-status { font-family: system-ui, sans-serif; font-size: 14px; text-align: center; }
+.board-status:empty { display: none; }
+
+@media (max-height: 700px) {
+  .over-avatar { width: 64px; height: 64px; border-width: 4px; }
+  .final-score { font-size: 52px; }
+  .panel { gap: 8px; padding: 14px 16px 16px; }
+  .panel h2 { font-size: 30px; }
+}
+
 .noscript { position: fixed; inset: 0; display: grid; place-items: center; background: var(--ink); font-size: 20px; }
 
 /* nízké displeje (telefon na šířku) */

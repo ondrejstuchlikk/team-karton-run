@@ -1,5 +1,5 @@
 // Ovládání HTML obrazovek (menu, výběr postavy, HUD, pauza, konec hry).
-import { CHARACTERS, avatarURL } from './characters.js';
+import { CHARACTERS, avatarURL, getCharacter } from './characters.js';
 
 const $ = id => document.getElementById(id);
 
@@ -34,6 +34,16 @@ export class UI {
     click('btnMute', h.toggleMute);
     click('btnPauseMute', h.toggleMute);
     click('btnFull', h.fullscreen);
+    click('btnBoard', h.openBoard);
+    click('btnOverBoard', h.openBoard);
+    click('btnBoardClose', () => this.hideBoard());
+    click('btnNickEdit', () => this.showNickForm(true));
+    $('nickForm').addEventListener('submit', e => {
+      e.preventDefault();
+      h.click?.();
+      $('nickInput').blur();
+      h.saveNick($('nickInput').value);
+    });
     // nápověda před startem: klepnutí kamkoli = start
     $('tip').addEventListener('click', e => { e.preventDefault(); h.click?.(); h.go(); });
 
@@ -68,6 +78,7 @@ export class UI {
       $(id).classList.toggle('show', show.includes(id));
     }
     document.body.dataset.state = state;
+    this.hideBoard();
     if (state === 'intro') this.flashHint();
     if (!['countdown', 'playing', 'intro'].includes(state)) this.countdownEl.classList.remove('show');
   }
@@ -147,6 +158,73 @@ export class UI {
     void el.offsetWidth;
     el.classList.add('show');
   }
+
+  // ---------- žebříček ----------
+
+  get boardOpen() { return $('board').classList.contains('show'); }
+
+  showBoard(nick) {
+    $('board').classList.add('show');
+    this.setNick(nick);
+    $('boardList').replaceChildren();
+    this.boardStatus('Načítám…');
+  }
+
+  hideBoard() { $('board').classList.remove('show'); }
+
+  setNick(nick) {
+    $('boardNick').textContent = nick;
+    $('nickInput').value = nick;
+    this.showNickForm(!nick);
+  }
+
+  showNickForm(on) {
+    $('nickForm').style.display = on ? '' : 'none';
+    $('boardMe').style.display = on || !$('boardNick').textContent ? 'none' : '';
+    // na mobilu by automatická klávesnice zakryla žebříček, takže fokus jen na počítači
+    if (on && !document.body.classList.contains('touch')) $('nickInput').focus();
+  }
+
+  boardStatus(text) { $('boardStatus').textContent = text; }
+
+  /**
+   * @param rows TOP hráči z žebříčku
+   * @param meId player_id tohoto hráče
+   * @param me {rank, nickname, character, score} – vlastní řádek, když hráč není v TOP
+   */
+  renderBoard(rows, meId, me) {
+    const list = $('boardList');
+    const row = (rank, r, isMe) => {
+      const li = document.createElement('li');
+      li.classList.toggle('me', isMe);
+      const ch = getCharacter(r.character);
+      const img = new Image();
+      img.src = avatarURL(ch, 64);
+      img.style.background = ch.color;
+      img.alt = '';
+      const cells = [['rank', `${rank}.`], ['name', r.nickname], ['pts', r.score]]
+        .map(([cls, text]) => {
+          const el = document.createElement(cls === 'pts' ? 'b' : 'span');
+          el.className = cls;
+          el.textContent = text; // přezdívky píší hráči -> jen textContent, nikdy innerHTML
+          return el;
+        });
+      li.append(cells[0], img, cells[1], cells[2]);
+      return li;
+    };
+    const items = rows.map((r, i) => row(i + 1, r, r.player_id === meId));
+    if (me) {
+      const gap = document.createElement('li');
+      gap.className = 'gap';
+      gap.textContent = '⋮';
+      items.push(gap, row(me.rank, me, true));
+    }
+    list.replaceChildren(...items);
+    this.boardStatus(rows.length ? '' : 'Zatím tu nikdo není. Buď první! 🏃');
+  }
+
+  /** Řádek s umístěním na obrazovce konce hry (text může obsahovat <b>). */
+  setOverRank(html) { $('overRank').innerHTML = html || ''; }
 
   gameOver(res, rec, storage) {
     const ch = res.character;

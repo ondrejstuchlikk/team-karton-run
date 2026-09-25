@@ -3,10 +3,17 @@ PLÁNY VÝVOJE – Team Karton Run
 Nápady a plány na další vývoj hry. Každý plán má název, podle kterého se dá
 zadat: „Udělej plán <NÁZEV> ze souboru Plány vývoje“.
 
+Do tohoto souboru budu přidávat nápady, většinou jednoduše popsané a 
+a nestrukturované. Chci abys jednou za čas, pokaždé co tě vyzvu, abys něco 
+dělal s tímto souborem, prošel nápady, lépe je struktoroval, napsal stav nápadu,
+upravil dokument tak, aby byl hezky čitelný (oddělit jednotlivé nápady, očíslovat
+je, atd.)
+
+
 
 [ŽEBŘÍČEK] Online žebříček přes Supabase
 ----------------------------------------
-Stav: čeká na realizaci
+Stav: hotovo (2026-09-25)
 
 Společný žebříček hráčů napříč zařízeními. Hra zůstává na GitHub Pages a výsledky
 posílá přímo z JavaScriptu do bezplatné databáze Supabase (tabulka scores: id,
