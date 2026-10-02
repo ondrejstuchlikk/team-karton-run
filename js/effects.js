@@ -87,3 +87,80 @@ export class BoostTrail {
     }
   }
 }
+
+// Jasně bílý kouř tryskající ze skleněnky kýblu během letu.
+// Proud míří dolů a dozadu (k divákovi), rychle se rozpíná a mizí.
+const KYBL_PARTS = 70, KYBL_RATE = 75;
+
+export class KyblSmoke {
+  constructor(scene) {
+    const tex = puffTexture();
+    this.parts = [];
+    for (let i = 0; i < KYBL_PARTS; i++) {
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: tex, transparent: true, depthWrite: false, color: '#ffffff', fog: false,
+      }));
+      s.visible = false;
+      s.renderOrder = 3;
+      scene.add(s);
+      this.parts.push({ s, life: 0, max: 1, vx: 0, vy: 0, vz: 0, size: 1 });
+    }
+    // hustý obláček přímo na konci skleněnky, aby proud vždy navazoval
+    this.core = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, color: '#ffffff', fog: false }));
+    this.core.visible = false;
+    this.core.renderOrder = 3;
+    scene.add(this.core);
+    this.acc = 0;
+  }
+
+  reset() {
+    for (const p of this.parts) { p.life = 0; p.s.visible = false; }
+    this.core.visible = false;
+    this.acc = 0;
+  }
+
+  /** age = jak dávno v rámci snímku částice vznikla (aby proud nebyl při nízkých FPS kouskovaný). */
+  spawn(pos, speed, burst, age = 0) {
+    const p = this.parts.find(q => q.life <= 0);
+    if (!p) return;
+    const r = Math.random;
+    p.max = p.life = burst ? 0.5 + r() * 0.3 : 0.45 + r() * 0.25;
+    p.size = burst ? 0.5 + r() * 0.4 : 0.26 + r() * 0.1;
+    const a = r() * Math.PI * 2, spread = burst ? 2.6 : 0.7;
+    p.vx = Math.cos(a) * spread * r();
+    p.vz = Math.sin(a) * spread * r() + 2 + speed * 0.18;   // zaostává za běžcem
+    p.vy = burst ? -1 - r() * 2 : -6.5 - r() * 2.5;         // tryská dolů ze skleněnky
+    p.s.position.set(pos.x + (r() - 0.5) * 0.05 + p.vx * age, pos.y + p.vy * age, pos.z + (r() - 0.5) * 0.05 + p.vz * age);
+    p.life -= age;
+    p.s.visible = true;
+  }
+
+  /** Oblak kouře najednou (start a dopad). */
+  burst(pos, speed, n = 18) {
+    for (let i = 0; i < n; i++) this.spawn(pos, speed, true);
+  }
+
+  /** on = tryská; pos = světová pozice konce skleněnky. */
+  update(dt, on, pos, speed) {
+    if (on) {
+      this.acc += dt * KYBL_RATE;
+      for (; this.acc >= 1; this.acc--) this.spawn(pos, speed, false, (this.acc - 1) / KYBL_RATE);
+      this.core.position.set(pos.x, pos.y - 0.08, pos.z + 0.04);
+      this.core.scale.setScalar(0.36 + Math.random() * 0.1);
+    }
+    this.core.visible = on;
+    const drag = Math.exp(-3.2 * dt);
+    for (const p of this.parts) {
+      if (p.life <= 0) continue;
+      p.life -= dt;
+      if (p.life <= 0) { p.s.visible = false; continue; }
+      const s = p.s, k = 1 - p.life / p.max;   // 0 = zrod, 1 = zánik
+      p.vx *= drag; p.vy *= drag;
+      s.position.x += p.vx * dt;
+      s.position.y += p.vy * dt;
+      s.position.z += p.vz * dt;
+      s.scale.setScalar(p.size * (1 + k * 3.2));
+      s.material.opacity = Math.min(1, 1.15 * (1 - k));
+    }
+  }
+}

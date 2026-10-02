@@ -3,8 +3,8 @@ import * as THREE from 'three';
 import { World } from './world.js';
 import { Obstacles } from './obstacles.js';
 import { Player } from './player.js';
-import { BoostTrail } from './effects.js';
-import { PLAYER_HW, PLAYER_HD, BOX_POINTS, KRATOM_POINTS, BOOST_TIME, BOOST_EXTRA, speedForDistance } from './config.js';
+import { BoostTrail, KyblSmoke } from './effects.js';
+import { PLAYER_HW, PLAYER_HD, BOX_POINTS, KRATOM_POINTS, BOOST_TIME, BOOST_EXTRA, KYBL_TIME, FLY_H, START_SPEED, speedForDistance } from './config.js';
 
 const damp = (a, b, rate, dt) => a + (b - a) * (1 - Math.exp(-rate * dt));
 const INTRO_TIME = 0.8;
@@ -41,6 +41,8 @@ export class Game {
     this.obstacles = new Obstacles(scene);
     this.player = new Player(scene);
     this.trail = new BoostTrail(scene);
+    this.smoke = new KyblSmoke(scene);
+    this.camLift = 0;
 
     this.state = 'menu';   // menu | select | ready | intro | playing | paused | countdown | dying | over
     this.t = 0;
@@ -72,10 +74,16 @@ export class Game {
     this.speed = 0;
     this.runTime = 0;
     this.lastHud = '';
+    this.flying = false;
+    this.flyEnd = 0;     // vzdálenost, kde let končí
+    this.flyLen = 1;
+    this.lastFly = -1;
+    this.camLift = 0;
     this.obstacles.reset();
     this.world.reset();
     this.player.reset();
     this.trail.reset();
+    this.smoke.reset();
   }
 
   setState(s) {
@@ -191,6 +199,7 @@ export class Game {
         this.speed = damp(this.speed, 0, 5, dt);
         this.world.update(dt, this.speed * 0.3);
         this.trail.update(dt, 0, p.x, p.y, false);
+        this.smoke.update(dt, false, null, 0);
         if (this.deathT > DEATH_TIME) {
           this.setState('over');
           this.hooks.onGameOver?.(this.result());
@@ -210,6 +219,18 @@ export class Game {
     return Math.min(1, (BOOST_TIME - this.boostT) / 0.25) * Math.min(1, this.boostT / 0.8);
   }
 
+  /** Sebraný kýbl: let nad překážkami. Délka letu se měří ve vzdálenosti na trati. */
+  startFly() {
+    const sp = Math.max(this.speed, START_SPEED);
+    this.flyLen = sp * KYBL_TIME;
+    this.flyEnd = this.distance + this.flyLen;
+    this.flying = true;
+    this.player.fly();
+    this.obstacles.startFlight(this.distance, this.flyEnd, sp);
+    this.smoke.burst(this.player.nozzle(_v3), sp);
+    this.hooks.onFly?.(true);
+  }
+
   /** Jeden krok běhu. */
   step(dt, speed) {
     if (this.boostT > 0) {
@@ -219,17 +240,31 @@ export class Game {
     this.speed = speed;
     const move = speed * dt;
     this.distance += move;
+    const p = this.player;
+    if (this.flying && this.distance >= this.flyEnd) {
+      this.flying = false;
+      p.land();
+      this.hooks.onFly?.(false);
+    }
     this.world.update(dt, speed);
     this.obstacles.update(dt, move, speed, this.distance);
-    this.player.update(dt, speed);
+    p.update(dt, speed);
+    if (p.landed) this.smoke.burst(_v3.set(p.x, 0.3, 0.2), speed, 14);
     this.collide();
     this.collect();
-    const p = this.player;
-    this.trail.update(dt, this.boost, p.x, p.y, p.sliding);
+    // za letu žádný oheň – z kýblu jde jen bílý kouř
+    this.trail.update(dt, p.hasKybl ? 0 : this.boost, p.x, p.y, p.sliding);
+    this.smoke.update(dt, this.flying, this.flying ? p.nozzle(_v3) : null, speed);
     this.emitHud();
+    if (this.flying) {
+      const f = Math.max(0, (this.flyEnd - this.distance) / this.flyLen);
+      const q = Math.ceil(f * 100);
+      if (q !== this.lastFly) { this.lastFly = q; this.hooks.onFlyTime?.(f); }
+    }
   }
 
   collide() {
+    if (this.flying) return;   // na kýblu letíme nad vším
     const p = this.player;
     const py0 = p.y, py1 = p.y + p.height;
     for (const o of this.obstacles.active) {
@@ -276,9 +311,20 @@ export class Game {
       this.hooks.onKratom?.();
       this.hooks.onBoost?.(true);
     }
+    const kybls = this.obstacles.kybls;
+    for (let i = kybls.length - 1; i >= 0; i--) {
+      const k = kybls[i];
+      if (Math.abs(k.position.z) > 0.9) continue;
+      if (Math.abs(k.position.x - p.x) > 0.9) continue;
+      const ky = k.userData.baseY;
+      if (ky < p.y - 0.6 || ky > p.y + p.height + 0.5) continue;
+      this.obstacles.removeKyblAt(i);
+      this.startFly();
+    }
   }
 
   crash() {
+    if (this.flying) { this.flying = false; this.hooks.onFly?.(false); }
     if (this.boostT > 0) { this.boostT = 0; this.hooks.onBoost?.(false); }
     this.player.die();
     this.deathT = 0;
@@ -336,6 +382,11 @@ export class Game {
       pos = _v1.set(px * 0.55, 5.4, 7.6);
       look = _v2.set(px * 0.35, 0.4, -5);
       rate = s === 'intro' ? 5 : 9;
+      // během letu kamera stoupá s běžcem (o něco méně, ať je vidět trať pod ním)
+      const liftTo = this.player.hasKybl && s !== 'menu' ? FLY_H * 0.85 : 0;
+      this.camLift = damp(this.camLift, Math.min(liftTo, this.player.y * 0.85 + 0.5), 4, dt);
+      pos.y += this.camLift;
+      look.y += this.camLift;
       if (s === 'dying' || s === 'over') {
         pos.set(px * 0.6, 3.6, 5.6);
         look.set(px * 0.8, 0.8, 0);
@@ -380,3 +431,4 @@ export class Game {
 
 const _v1 = new THREE.Vector3();
 const _v2 = new THREE.Vector3();
+const _v3 = new THREE.Vector3();

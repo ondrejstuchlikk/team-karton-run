@@ -8,6 +8,7 @@ Endless runner ve stylu Subway Surfers pro náš běžecký tým **Team Karton**
 - Překážky: velké láhve a barely s kratomem, cigarety napříč dráhou a vzácně joint ve výšce hlavy
 - Sbírej kartonové krabice pro bonusové body (1 krabice = 10 bodů)
 - Sbírej kelímky s kratomem (1 kelímek = 25 bodů, zhruba jednou za 10 s, první hned na začátku): běžec se na 3 s zrychlí a táhne za sebou ohnivou stopu
+- Sbírej kýbl (zhruba jednou za půl minuty, první asi po 20 s): 2L PET láhev se skleněnkou ve víčku na zádech vynese běžce na 7 s nad všechny překážky, ze skleněnky tryská bílý kouř a ve vzduchu visí řady kartonů. Ve vzduchu jde jen měnit dráhy, místo přistání je vždy volné.
 - Před každým během krátká nápověda, co sbírat a čemu uhnout (klepnutím se dá přeskočit)
 - Rekordy (celkový a pro každou postavu) se ukládají v prohlížeči
 - Nasbírané kartony se sčítají ze všech běhů do peněženky (vidět v menu a na konci běhu), uložené v prohlížeči daného zařízení
@@ -38,8 +39,9 @@ js/game.js          – renderer, kamera, herní smyčka (delta time), kolize, s
 js/world.js         – trať, chodníky, stromy, lampy, cedule TEAM KARTON
 js/player.js        – pohyb hráče, skok, skluz, animace běhu
 js/characters.js    – definice postav, 3D modely (účesy, obličej), 2D avatary
-js/obstacles.js     – překážky, krabice, kelímky kratomu, object pooling, generátor průchozích řad
-js/effects.js       – ohnivá stopa s kouřem při zrychlení
+js/obstacles.js     – překážky, krabice, kelímky kratomu, kýbly, kartony ve vzduchu, object pooling, generátor průchozích řad
+js/kybl.js          – 3D model kýblu (PET láhev, víčko, skleněnka) na záda i na trať
+js/effects.js       – ohnivá stopa při zrychlení, bílý kouř z kýblu
 js/input.js         – swipe (reaguje už během tahu) + klávesnice
 js/audio.js         – zvukové efekty přes Web Audio API
 js/storage.js       – rekordy, peněženka kartonů a nastavení v localStorage

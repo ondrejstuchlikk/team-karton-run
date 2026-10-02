@@ -1,8 +1,10 @@
-// Překážky (láhve, barely, cigarety, jointy), sbíratelné kartony a kelímky
-// s kratomem (zrychlení), object pooling a generátor řad, který vždy nechá průchozí cestu.
+// Překážky (láhve, barely, cigarety, jointy), sbíratelné kartony, kelímky
+// s kratomem (zrychlení) a kýbl (let), object pooling a generátor řad,
+// který vždy nechá průchozí cestu.
 import * as THREE from 'three';
 import { part, merge, vcMaterial, labelTexture, canvasTexture, makeCanvas } from './geo.js';
-import { LANES, SPAWN_Z, DESPAWN_Z, START_SPEED } from './config.js';
+import { LANES, SPAWN_Z, DESPAWN_Z, START_SPEED, KYBL_TIME, FLY_H } from './config.js';
+import { buildKybl } from './kybl.js';
 
 // ---------- sdílené geometrie a materiály ----------
 const SHADOW = '#8e3a28'; // tmavý tartan = levný „stín“ pod překážkou
@@ -188,8 +190,40 @@ function buildKratom() {
   return o;
 }
 
+// ---------- kýbl (sbíratelný, dává let) ----------
+const KYBL_SCALE = 2.3;
+const AIR_Y = FLY_H + 0.75;   // výška kartonů ve vzduchu
+
+function kyblGlowTexture() {
+  const c = makeCanvas(64, 64), x = c.getContext('2d');
+  const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,0.9)');
+  g.addColorStop(0.45, 'rgba(200,240,255,0.35)');
+  g.addColorStop(1, 'rgba(180,230,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+  return canvasTexture(c);
+}
+const kyblGlowMat = new THREE.SpriteMaterial({ map: kyblGlowTexture(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+
+function buildKyblPickup() {
+  const o = new THREE.Group();
+  const k = buildKybl();
+  k.scale.setScalar(KYBL_SCALE);
+  k.position.y = 0.55;
+  o.add(k);
+  const n = k.userData.nozzle.position;
+  addSmoke(o, n.x * KYBL_SCALE, 0.55 + n.y * KYBL_SCALE, n.z * KYBL_SCALE);
+  const glow = new THREE.Sprite(kyblGlowMat);
+  glow.position.y = 0.45;
+  glow.scale.setScalar(3);
+  glow.renderOrder = 2;
+  o.add(glow);
+  o.userData.glow = glow;
+  return o;
+}
+
 /**
- * Vyrenderuje náhledy kelímku, láhve a sudu do obrázků (pro nápovědu před startem).
+ * Vyrenderuje náhledy kelímku, kýblu, láhve a sudu do obrázků (pro nápovědu před startem).
  * Používá dočasný vlastní WebGL kontext, který hned uvolní.
  */
 export function renderThumbs(size = 160) {
@@ -216,7 +250,11 @@ export function renderThumbs(size = 160) {
   };
   const cup = buildKratom();
   cup.remove(cup.userData.glow);
-  const out = { kratom: shot(cup), bottle: shot(TYPES.bottle.build()), barrel: shot(TYPES.barrel.build()) };
+  const kybl = buildKyblPickup();
+  kybl.remove(kybl.userData.glow);
+  for (const p of kybl.userData.smoke) kybl.remove(p);
+  kybl.rotation.set(0, -0.6, -0.55);   // šikmo, ať je v čtvercovém náhledu větší
+  const out = { kratom: shot(cup), kybl: shot(kybl), bottle: shot(TYPES.bottle.build()), barrel: shot(TYPES.barrel.build()) };
   r.dispose();
   r.forceContextLoss();
   return out;
@@ -248,6 +286,8 @@ class Pool {
 const rnd = n => Math.floor(Math.random() * n);
 // Pauza mezi kelímky kratomu: 5–15 s, v průměru 10 s (součet dvou náhod => častěji kolem středu)
 const kratomInterval = () => 5 + (Math.random() + Math.random()) * 5;
+// Pauza mezi kýbly (počítá se od konce letu): 25–40 s
+const kyblInterval = () => 25 + Math.random() * 15;
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 export class Obstacles {
@@ -264,9 +304,11 @@ export class Obstacles {
     }
     this.boxPool = new Pool(scene, () => new THREE.Mesh(boxGeo, boxMat), 40);
     this.kratomPool = new Pool(scene, buildKratom, 3);
+    this.kyblPool = new Pool(scene, buildKyblPickup, 2);
     this.active = [];   // překážky
     this.boxes = [];    // krabice
     this.kratoms = [];  // kelímky s kratomem
+    this.kybls = [];    // kýbly
     this.time = 0;
     this.reset();
   }
@@ -275,11 +317,16 @@ export class Obstacles {
     for (const o of this.active) this.pools[o.userData.type].release(o);
     for (const b of this.boxes) this.boxPool.release(b);
     for (const k of this.kratoms) this.kratomPool.release(k);
+    for (const k of this.kybls) this.kyblPool.release(k);
     this.active.length = 0;
     this.boxes.length = 0;
     this.kratoms.length = 0;
+    this.kybls.length = 0;
     this.runT = 0;           // čas běhu (s) – pro časování kratomu
     this.nextKratomT = 0;    // kdy (čas běhu) má další kratom doběhnout k hráči; 0 = hned v první řadě
+    this.nextKyblT = 18 + Math.random() * 8;   // první kýbl zhruba po 20 s
+    this.flight = null;      // plán letu (vzdálenosti na trati), viz startFlight
+    this.airLane = 1;
     this.nextRowZ = -48;     // první řada kousek před hráčem
     this.prevGap = 30;
     this.lastFree = 1;
@@ -301,10 +348,12 @@ export class Obstacles {
     return o;
   }
 
-  addBox(lane, y, z) {
+  addBox(lane, y, z, distance) {
     const b = this.boxPool.get();
+    y = this.flightY(distance - z, y);
     b.position.set(LANES[lane], y, z);
     b.userData.baseY = y;
+    b.userData.groundY = y;
     b.userData.lane = lane;
     b.rotation.y = z * 0.4;
     this.boxes.push(b);
@@ -316,6 +365,44 @@ export class Obstacles {
     k.userData.baseY = y;
     k.userData.lane = lane;
     this.kratoms.push(k);
+  }
+
+  addKybl(lane, z) {
+    const k = this.kyblPool.get();
+    k.position.set(LANES[lane], 1.0, z);
+    k.userData.baseY = 1.0;
+    this.kybls.push(k);
+  }
+
+  /**
+   * Hráč sebral kýbl: let skončí na vzdálenosti `end`, pak ~0.5 s padá.
+   * Místo dopadu se vyčistí od překážek a kartony na trati vyletí do výšky letu.
+   */
+  startFlight(distance, end, speed) {
+    this.flight = {
+      end,
+      land: end + 0.5 * speed,     // kde běžec dopadne
+      safe0: end - 0.4 * speed,    // úsek bez překážek kolem dopadu
+      safe1: end + 1.8 * speed,
+    };
+    const f = this.flight;
+    for (let i = this.active.length - 1; i >= 0; i--) {
+      const o = this.active[i], at = distance - o.position.z;
+      if (at > f.safe0 && at < f.safe1) this.removeObstacleAt(i);
+    }
+    for (const b of this.boxes) {
+      if (b.position.z < -20) b.userData.groundY = this.flightY(distance - b.position.z, b.userData.groundY);
+    }
+    this.nextKyblT = Math.max(this.nextKyblT, this.runT + KYBL_TIME + kyblInterval());
+  }
+
+  /** Výška kartonu na dané vzdálenosti trati: během letu ve vzduchu, při sestupu oblouk dolů. */
+  flightY(at, y) {
+    const f = this.flight;
+    if (!f || at >= f.land) return y;
+    if (at < f.end) return AIR_Y;
+    const t = (at - f.end) / (f.land - f.end);
+    return AIR_Y + (y - AIR_Y) * t * t;
   }
 
   /**
@@ -330,9 +417,13 @@ export class Obstacles {
     const d = Math.min(1, distance / 2500);
     let gap = Math.max(17, speed * 0.66) + Math.random() * (9 - 5 * d);
     const laneTypes = [null, null, null];
-
+    const at = distance - z;   // vzdálenost na trati, kde řada leží
+    const f = this.flight;
+    const inAir = f && at < f.end;
     const r = Math.random();
-    if (distance > 60 && r < 0.07) {
+    if (f && at > f.safe0 && at < f.safe1) {
+      // místo dopadu po letu – bez překážek
+    } else if (distance > 60 && r < 0.07) {
       // oddechová řada – jen krabice
     } else if (distance > 250 && r < 0.12) {
       // celá řada cigaret -> skok
@@ -360,20 +451,25 @@ export class Obstacles {
 
     // krabice v prostoru před touto řadou (mezi ní a předchozí řadou)
     let boxLane = -1;
-    if (Math.random() < 0.7) {
+    if (inAir) {
+      // ve vzduchu souvislá řada kartonů, která plynule přechází mezi drahami
+      this.airLane = Math.max(0, Math.min(2, this.airLane + rnd(3) - 1));
+      boxLane = this.airLane;
+      for (let bz = z + 1, end = z + this.prevGap - 1; bz <= end; bz += 2.4) this.addBox(boxLane, 0.75, bz, distance);
+    } else if (Math.random() < 0.7) {
       const freeLanes = [0, 1, 2].filter(l => !laneTypes[l] || !TYPES[laneTypes[l]].tall);
       const lane = freeLanes.length && Math.random() < 0.6 ? freeLanes[rnd(freeLanes.length)] : rnd(3);
       const t = laneTypes[lane];
       boxLane = lane;
       const start = z + 4, end = z + this.prevGap - 4;
-      for (let bz = start; bz <= end; bz += 2.4) this.addBox(lane, 0.75, bz);
+      for (let bz = start; bz <= end; bz += 2.4) this.addBox(lane, 0.75, bz, distance);
       if (t && TYPES[t].low) {
         // oblouk krabic přes nízkou překážku
-        this.addBox(lane, 1.9, z + 2.2);
-        this.addBox(lane, 2.7, z);
-        this.addBox(lane, 1.9, z - 2.2);
+        this.addBox(lane, 1.9, z + 2.2, distance);
+        this.addBox(lane, 2.7, z, distance);
+        this.addBox(lane, 1.9, z - 2.2, distance);
       } else if (t === 'joint') {
-        this.addBox(lane, 0.5, z);
+        this.addBox(lane, 0.5, z, distance);
       }
     }
 
@@ -381,10 +477,19 @@ export class Obstacles {
     // uprostřed mezery před řadou, mimo řadu krabic
     const kz = z + this.prevGap * 0.5;
     const eta = this.runT - kz / Math.max(speed, START_SPEED);   // odhad, kdy doběhne k hráči
-    if (eta >= this.nextKratomT) {
+    // (během letu ani těsně po dopadu ne – na trati by zůstal nedosažitelný)
+    const flightRow = f && distance - kz < f.safe1;
+    let kratomLane = -1;
+    if (eta >= this.nextKratomT && !flightRow) {
       const lanes = [0, 1, 2].filter(l => l !== boxLane);
-      this.addKratom(lanes[rnd(lanes.length)], 0.95, kz);
+      kratomLane = lanes[rnd(lanes.length)];
+      this.addKratom(kratomLane, 0.95, kz);
       this.nextKratomT = eta + kratomInterval();
+    } else if (eta >= this.nextKyblT && !flightRow) {
+      // kýbl: zhruba jednou za půl minuty, nikdy ve stejné řadě jako kratom
+      const lanes = [0, 1, 2].filter(l => l !== boxLane);
+      this.addKybl(lanes[rnd(lanes.length)], kz);
+      this.nextKyblT = eta + KYBL_TIME + kyblInterval();
     }
     this.prevGap = gap;
     return gap;
@@ -403,26 +508,19 @@ export class Obstacles {
     for (let i = this.active.length - 1; i >= 0; i--) {
       const o = this.active[i];
       o.position.z += move;
-      if (o.position.z > DESPAWN_Z) {
-        this.pools[o.userData.type].release(o);
-        this.active[i] = this.active[this.active.length - 1];
-        this.active.pop();
-        continue;
-      }
-      const smoke = o.userData.smoke;
-      if (smoke && o.position.z > -60) {
-        for (const p of smoke) {
-          const k = (this.time * 0.7 + p.userData.off) % 1;
-          p.position.set(p.userData.bx + k * 0.25, p.userData.by + k * 0.9, p.userData.bz + Math.sin(k * 6 + p.userData.off * 9) * 0.1);
-          p.scale.setScalar(0.5 + k * 1.1);
-        }
-      }
+      if (o.position.z > DESPAWN_Z) { this.removeObstacleAt(i); continue; }
+      this.animSmoke(o);
     }
     for (let i = this.boxes.length - 1; i >= 0; i--) {
       const b = this.boxes[i];
       b.position.z += move;
       if (b.position.z > DESPAWN_Z) { this.removeBoxAt(i); continue; }
       b.rotation.y += dt * 3;
+      // karton, který má vyletět do výšky letu, k ní plynule stoupá
+      if (b.userData.baseY !== b.userData.groundY) {
+        b.userData.baseY += (b.userData.groundY - b.userData.baseY) * (1 - Math.exp(-4 * dt));
+        if (Math.abs(b.userData.groundY - b.userData.baseY) < 0.01) b.userData.baseY = b.userData.groundY;
+      }
       b.position.y = b.userData.baseY + Math.sin(this.time * 4 + b.position.z * 0.3) * 0.08;
     }
     for (let i = this.kratoms.length - 1; i >= 0; i--) {
@@ -433,6 +531,39 @@ export class Obstacles {
       k.position.y = k.userData.baseY + Math.sin(this.time * 3.5) * 0.12;
       k.userData.glow.material.opacity = 0.75 + Math.sin(this.time * 6) * 0.25;
     }
+    for (let i = this.kybls.length - 1; i >= 0; i--) {
+      const k = this.kybls[i];
+      k.position.z += move;
+      if (k.position.z > DESPAWN_Z) { this.removeKyblAt(i); continue; }
+      k.rotation.y += dt * 1.8;
+      k.position.y = k.userData.baseY + Math.sin(this.time * 3) * 0.12;
+      k.userData.glow.material.opacity = 0.7 + Math.sin(this.time * 5) * 0.25;
+      this.animSmoke(k);
+    }
+  }
+
+  /** Obláčky kouře nad cigaretou, jointem a skleněnkou kýblu. */
+  animSmoke(o) {
+    const smoke = o.userData.smoke;
+    if (!smoke || o.position.z < -60) return;
+    for (const p of smoke) {
+      const k = (this.time * 0.7 + p.userData.off) % 1;
+      p.position.set(p.userData.bx + k * 0.25, p.userData.by + k * 0.9, p.userData.bz + Math.sin(k * 6 + p.userData.off * 9) * 0.1);
+      p.scale.setScalar(0.5 + k * 1.1);
+    }
+  }
+
+  removeObstacleAt(i) {
+    const o = this.active[i];
+    this.pools[o.userData.type].release(o);
+    this.active[i] = this.active[this.active.length - 1];
+    this.active.pop();
+  }
+
+  removeKyblAt(i) {
+    this.kyblPool.release(this.kybls[i]);
+    this.kybls[i] = this.kybls[this.kybls.length - 1];
+    this.kybls.pop();
   }
 
   removeKratomAt(i) {

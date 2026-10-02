@@ -1,7 +1,8 @@
 // Hráč: pohyb mezi drahami, skok, skluz a procedurální animace běhu.
 import * as THREE from 'three';
-import { LANES, PLAYER_H, PLAYER_SLIDE_H } from './config.js';
+import { LANES, PLAYER_H, PLAYER_SLIDE_H, FLY_H } from './config.js';
 import { buildRunner } from './characters.js';
+import { buildBackKybl } from './kybl.js';
 import { makeCanvas, canvasTexture } from './geo.js';
 
 const JUMP_H = 2.2;
@@ -41,8 +42,18 @@ export class Player {
 
   setCharacter(ch) {
     if (this.model) this.root.remove(this.model.root);
-    if (!this.models.has(ch.id)) this.models.set(ch.id, buildRunner(ch));
+    if (!this.models.has(ch.id)) {
+      const m = buildRunner(ch);
+      // kýbl na zádech (víčkem ke kolenům), viditelný jen během letu
+      m.kybl = buildBackKybl();
+      m.kybl.position.set(0, 1.42, 0.32);
+      m.kybl.scale.setScalar(1.2);
+      m.kybl.visible = false;
+      m.body.add(m.kybl);
+      this.models.set(ch.id, m);
+    }
     this.model = this.models.get(ch.id);
+    this.model.kybl.visible = this.hasKybl;
     this.root.add(this.model.root);
   }
 
@@ -57,6 +68,9 @@ export class Player {
     this.dead = false;
     this.deadT = 0;
     this.bumpT = 0;
+    this.flying = false;     // letí na kýblu
+    this.hasKybl = false;    // kýbl na zádech (i během sestupu)
+    if (this.model) this.model.kybl.visible = false;
     this.root.position.set(0, 0, 0);
     this.root.rotation.set(0, 0, 0);
   }
@@ -82,7 +96,7 @@ export class Player {
   }
 
   jump() {
-    if (this.jumping) return false;
+    if (this.jumping || this.flying) return false;
     this.jumping = true;
     this.vy = JUMP_V;
     this.slideT = 0;
@@ -91,6 +105,7 @@ export class Player {
   }
 
   slide() {
+    if (this.flying) return false;
     if (this.jumping) {             // ve vzduchu = rychlý pád a skluz po dopadu
       this.vy = Math.min(this.vy, FAST_DROP_V);
       this.pendingSlide = true;
@@ -99,6 +114,29 @@ export class Player {
     const was = this.sliding;
     this.slideT = SLIDE_TIME;
     return !was;
+  }
+
+  /** Start letu na kýblu. */
+  fly() {
+    this.flying = true;
+    this.hasKybl = true;
+    this.model.kybl.visible = true;
+    this.jumping = false;
+    this.vy = 0;
+    this.slideT = 0;
+    this.pendingSlide = false;
+  }
+
+  /** Konec letu: volný pád zpět na trať. */
+  land() {
+    this.flying = false;
+    this.jumping = true;
+    this.vy = 0;
+  }
+
+  /** Světová pozice konce skleněnky (odkud tryská kouř). */
+  nozzle(out) {
+    return this.model.kybl.userData.nozzle.getWorldPosition(out);
   }
 
   die() {
@@ -115,26 +153,39 @@ export class Player {
     const vx = (this.x - prevX) / Math.max(dt, 1e-4);
 
     // vertikála
-    if (this.jumping) {
+    this.landed = false;
+    if (this.flying) {
+      this.y = damp(this.y, FLY_H, 4, dt);
+    } else if (this.jumping) {
       this.vy -= GRAVITY * dt;
       this.y += this.vy * dt;
       if (this.y <= 0) {
         this.y = 0; this.vy = 0; this.jumping = false;
+        if (this.hasKybl) { this.hasKybl = false; this.model.kybl.visible = false; this.landed = true; }
         if (this.pendingSlide) { this.slideT = SLIDE_TIME; this.pendingSlide = false; }
       }
     }
     if (this.slideT > 0) this.slideT -= dt;
     if (this.bumpT > 0) this.bumpT -= dt;
 
-    this.root.position.set(this.x, this.y, 0);
+    // ve vzduchu se běžec lehce pohupuje (jen vizuálně, kolize počítají s this.y)
+    const bob = this.flying ? Math.sin(this.phase * 0.35) * 0.08 : 0;
+    this.root.position.set(this.x, this.y + bob, 0);
     this.root.rotation.y = damp(this.root.rotation.y, 0, 10, dt);
 
     // animace
     const k = 22;
     this.phase += dt * (8 + speed * 0.32);
     const s = Math.sin(this.phase), c = Math.cos(this.phase);
-    let bodyRX, bodyY, hipL, hipR, kneeL, kneeR, shL, shR, elb;
-    if (this.sliding) {
+    let bodyRX, bodyY, hipL, hipR, kneeL, kneeR, shL, shR, elb, armOut = 0;
+    if (this.flying) {
+      // let: předklon, nohy volně visí a pomalu se klátí, ruce roztažené do stran
+      const w = Math.sin(this.phase * 0.5);
+      bodyRX = -0.32; bodyY = 0;
+      hipL = 0.15 + w * 0.2; hipR = 0.15 - w * 0.2;
+      kneeL = -0.55 - w * 0.15; kneeR = -0.55 + w * 0.15;
+      shL = -0.35; shR = -0.35; elb = 0.5; armOut = 0.7;
+    } else if (this.sliding) {
       bodyRX = 1.2; bodyY = 0.22;
       hipL = 0.45; hipR = 0.35; kneeL = -0.1; kneeR = -0.35;
       shL = -0.6; shR = -0.6; elb = 0.4;
@@ -161,8 +212,8 @@ export class Player {
     m.arms[1].sh.rotation.x = damp(m.arms[1].sh.rotation.x, shR, k, dt);
     m.arms[0].el.rotation.x = damp(m.arms[0].el.rotation.x, elb, k, dt);
     m.arms[1].el.rotation.x = damp(m.arms[1].el.rotation.x, elb, k, dt);
-    m.arms[0].sh.rotation.z = damp(m.arms[0].sh.rotation.z, 0, k, dt);
-    m.arms[1].sh.rotation.z = damp(m.arms[1].sh.rotation.z, 0, k, dt);
+    m.arms[0].sh.rotation.z = damp(m.arms[0].sh.rotation.z, -armOut, k, dt);
+    m.arms[1].sh.rotation.z = damp(m.arms[1].sh.rotation.z, armOut, k, dt);
     m.head.rotation.y = damp(m.head.rotation.y, 0, 10, dt);
 
     this.updateShadow();

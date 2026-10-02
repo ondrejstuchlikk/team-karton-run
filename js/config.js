@@ -11,6 +11,8 @@ export const BOX_POINTS = 10;             // bonus za jednu krabici
 export const KRATOM_POINTS = 25;          // bonus za jeden kelímek kratomu
 export const BOOST_TIME = 3;              // jak dlouho (s) trvá zrychlení po kratomu
 export const BOOST_EXTRA = 0.35;          // o kolik se zrychlí (0.35 = +35 %)
+export const KYBL_TIME = 7;               // jak dlouho (s) se letí na kýblu
+export const FLY_H = 4.6;                 // výška letu nad tratí (nad všemi překážkami)
 
 // Hitbox hráče (poloviční šířka/hloubka)
 export const PLAYER_HW = 0.3;

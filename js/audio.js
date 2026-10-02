@@ -27,7 +27,32 @@ export class Sfx {
     } catch { /* bez zvuku */ }
   }
 
-  setMuted(m) { this.muted = m; }
+  setMuted(m) { this.muted = m; if (m) this.hiss(false); }
+
+  /** Nepřetržité syčení kouře z kýblu během letu. */
+  hiss(on) {
+    if (!on) {
+      if (this.hissNode) {
+        const { s, g } = this.hissNode, t = this.ctx.currentTime;
+        g.gain.setTargetAtTime(0, t, 0.08);
+        s.stop(t + 0.4);
+        this.hissNode = null;
+      }
+      return;
+    }
+    if (this.hissNode || !this.ok()) return;
+    try {
+      const c = this.ctx, t = c.currentTime;
+      const s = c.createBufferSource(); s.buffer = this.noise; s.loop = true;
+      const f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 2500;
+      const g = c.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.1, t + 0.15);
+      s.connect(f).connect(g).connect(this.master);
+      s.start(t);
+      this.hissNode = { s, g };
+    } catch { /* bez zvuku */ }
+  }
 
   ok() { return this.ctx && !this.muted && this.ctx.state === 'running'; }
 
@@ -70,6 +95,11 @@ export class Sfx {
           this.tone('triangle', 660, 1320, 0.25, 0.18, 0.05);
           this.noiseBurst(0.4, 0.25, 2200, 'bandpass');
           break;
+        case 'kybl':
+          this.noiseBurst(0.6, 0.45, 3000, 'highpass');
+          this.tone('sine', 300, 1200, 0.45, 0.16);
+          break;
+        case 'land': this.noiseBurst(0.3, 0.4, 600); break;
         case 'bump':
           this.tone('sawtooth', 180, 90, 0.15, 0.25);
           this.noiseBurst(0.1, 0.3, 800);

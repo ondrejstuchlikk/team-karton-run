@@ -106,12 +106,19 @@ try {
   game = new Game(document.getElementById('game'), {
     onStateChange: s => {
       ui.showState(s);
+      sfx.hiss(s === 'playing' && game.flying);
       input.enabled = s === 'playing' || s === 'intro' || s === 'ready';
     },
     onHud: (score, boxes, kratoms) => ui.hud(score, boxes, kratoms),
     onCollect: () => sfx.play('box'),
     onKratom: () => { sfx.play('kratom'); navigator.vibrate?.(25); },
     onBoost: on => ui.boost(on),
+    onFly: on => {
+      sfx.hiss(on);
+      ui.fly(on);
+      if (on) { sfx.play('kybl'); navigator.vibrate?.(40); } else sfx.play('land');
+    },
+    onFlyTime: f => ui.flyTime(f),
     onBump: () => { sfx.play('bump'); navigator.vibrate?.(40); },
     onCrash: () => { sfx.play('crash'); navigator.vibrate?.([80, 40, 120]); },
     onCountdown: n => { ui.countdown(n); sfx.play(n > 0 ? 'count' : 'go'); },

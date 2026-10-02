@@ -52,6 +52,8 @@ export class UI {
     this.boxesWrap = $('hudBoxesWrap');
     this.kratom = $('hudKratom');
     this.kratomWrap = $('hudKratomWrap');
+    this.flyEl = $('hudFly');
+    this.flyFill = $('hudFlyFill');
     this.countdownEl = $('countdown');
     this.hintEl = $('hint');
 
@@ -64,6 +66,8 @@ export class UI {
 
   setTipImages(t) {
     $('tipCup').src = t.kratom;
+    $('tipKybl').src = t.kybl;
+    $('hudFlyIcon').src = t.kybl;
     $('tipBottle').src = t.bottle;
     $('tipBarrel').src = t.barrel;
   }
@@ -80,6 +84,7 @@ export class UI {
     document.body.dataset.state = state;
     this.hideBoard();
     if (state === 'intro') this.flashHint();
+    if (state === 'menu' || state === 'over' || state === 'select') this.fly(false);
     if (!['countdown', 'playing', 'intro'].includes(state)) this.countdownEl.classList.remove('show');
   }
 
@@ -150,6 +155,14 @@ export class UI {
   }
 
   boost(on) { this.kratomWrap.classList.toggle('boost', on); }
+
+  /** Ukazatel zbývajícího letu na kýblu. */
+  fly(on) {
+    this.flyEl.classList.toggle('show', on);
+    if (on) this.flyTime(1);
+  }
+
+  flyTime(f) { this.flyFill.style.transform = `scaleX(${f})`; }
 
   countdown(n) {
     const el = this.countdownEl;
