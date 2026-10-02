@@ -5,7 +5,7 @@ import { part, merge, vcMaterial } from './geo.js';
 
 const R = 0.13;          // poloměr láhve
 const TUBE_TILT = 0.35;  // skleněnka míří šikmo dozadu, ať kouř nejde běžci na nohy
-const TUBE_LEN = 0.22;
+const TUBE_LEN = 0.14;
 
 const G = {};
 function geos() {
@@ -26,8 +26,8 @@ function geos() {
   // skleněnka: tenká trubička z víčka, na konci rozšířená kalíšková hlavička
   const tube = new THREE.CylinderGeometry(0.02, 0.02, TUBE_LEN, 8);
   tube.translate(0, -TUBE_LEN / 2, 0);
-  const bowl = new THREE.CylinderGeometry(0.02, 0.048, 0.06, 10);
-  bowl.translate(0, -TUBE_LEN - 0.03, 0);
+  const bowl = new THREE.CylinderGeometry(0.02, 0.042, 0.05, 10);
+  bowl.translate(0, -TUBE_LEN - 0.025, 0);
   G.glass = merge([part(tube, '#ffffff'), part(bowl, '#ffffff')]);
   G.glass.rotateX(-TUBE_TILT);   // špička k +z = dozadu od zad běžce
   G.glass.translate(0, -0.425, 0);
@@ -52,8 +52,8 @@ const shellMat = new THREE.MeshPhongMaterial({
 });
 const fillMat = new THREE.MeshLambertMaterial({ color: '#ffffff', emissive: '#9aa4ad', transparent: true, opacity: 0.8 });
 const glassMat = new THREE.MeshPhongMaterial({
-  color: '#c9f0ff', specular: '#ffffff', shininess: 120, emissive: '#2c4a55',
-  transparent: true, opacity: 0.75,
+  color: '#2a3d45', specular: '#ffffff', shininess: 120, emissive: '#0a1418',
+  transparent: true, opacity: 0.88,
 });
 
 /**
@@ -69,7 +69,7 @@ export function buildKybl() {
   shell.renderOrder = 1;
   o.add(shell);
   const nozzle = new THREE.Object3D();
-  const d = TUBE_LEN + 0.06;
+  const d = TUBE_LEN + 0.05;
   nozzle.position.set(0, -0.425 - Math.cos(TUBE_TILT) * d, Math.sin(TUBE_TILT) * d);
   o.add(nozzle);
   o.userData.nozzle = nozzle;

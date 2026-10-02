@@ -8,7 +8,7 @@ Endless runner ve stylu Subway Surfers pro náš běžecký tým **Team Karton**
 - Překážky: velké láhve a barely s kratomem, cigarety napříč dráhou a vzácně joint ve výšce hlavy
 - Sbírej kartonové krabice pro bonusové body (1 krabice = 10 bodů)
 - Sbírej kelímky s kratomem (1 kelímek = 25 bodů, zhruba jednou za 10 s, první hned na začátku): běžec se na 3 s zrychlí a táhne za sebou ohnivou stopu
-- Sbírej kýbl (zhruba jednou za půl minuty, první asi po 20 s): 2L PET láhev se skleněnkou ve víčku na zádech vynese běžce na 7 s nad všechny překážky, ze skleněnky tryská bílý kouř a ve vzduchu visí řady kartonů. Ve vzduchu jde jen měnit dráhy, místo přistání je vždy volné.
+- Sbírej kýbl (zhruba jednou za půl minuty, první během 5–10 s): 2L PET láhev se skleněnkou ve víčku na zádech vynese běžce na 7 s nad všechny překážky, ze skleněnky tryská bílý kouř a ve vzduchu visí řady kartonů. Ve vzduchu jde jen měnit dráhy, místo přistání je vždy volné.
 - Před každým během krátká nápověda, co sbírat a čemu uhnout (klepnutím se dá přeskočit)
 - Rekordy (celkový a pro každou postavu) se ukládají v prohlížeči
 - Nasbírané kartony se sčítají ze všech běhů do peněženky (vidět v menu a na konci běhu), uložené v prohlížeči daného zařízení

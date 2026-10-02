@@ -324,7 +324,7 @@ export class Obstacles {
     this.kybls.length = 0;
     this.runT = 0;           // čas běhu (s) – pro časování kratomu
     this.nextKratomT = 0;    // kdy (čas běhu) má další kratom doběhnout k hráči; 0 = hned v první řadě
-    this.nextKyblT = 18 + Math.random() * 8;   // první kýbl zhruba po 20 s
+    this.nextKyblT = 5 + Math.random() * 5;    // první kýbl během 5–10 s
     this.flight = null;      // plán letu (vzdálenosti na trati), viz startFlight
     this.airLane = 1;
     this.nextRowZ = -48;     // první řada kousek před hráčem
